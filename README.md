@@ -1,4 +1,4 @@
-royecto educativo de mapeo colaborativo desarrollado por el Prof. René L. Martinez del espaco Tecnologias Digitales y Computacionales, para estudiantes del CEIJA N° 4 SAN FRANCISCO. 
+Proyecto educativo de mapeo colaborativo desarrollado por el Prof. René L. Martinez del espaco Tecnologias Digitales y Computacionales, para estudiantes del CEIJA N° 4 SAN FRANCISCO. 
 Permite registrar, geolocalizar y documentar puntos de interés del entorno local en tiempo real.
 
 📌 ¿Qué es este proyecto?
