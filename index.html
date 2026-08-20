@@ -201,35 +201,16 @@
 </head>
 <body>
 
-<!-- ========== CONFIGURACIÓN FIREBASE (reemplazar con tus credenciales) ========== -->
+<!-- ========== CONFIGURACIÓN FIREBASE ========== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <script>
-/*
-  INSTRUCCIONES PARA CONFIGURAR FIREBASE:
-  1. Andá a https://console.firebase.google.com
-  2. Creá un nuevo proyecto (nombre: "MapaColaborativoSF" o el que prefieras)
-  3. Una vez creado, clic en el icono </> ("Agregar app web")
-  4. Registrá la app con un nickname (ej: "mapa-web")
-  5. Copiá el objeto "firebaseConfig" que te muestra
-  6. Pegalo ACA ABAJO reemplazando el objeto de ejemplo
-  7. En el panel izquierdo de Firebase, andá a "Realtime Database" → "Crear base de datos" → Modo de prueba
-  8. En "Authentication" → "Sign-in method" → Activá "Anonymous"
-  9. Subí este archivo a cualquier hosting (GitHub Pages, Netlify, etc.) y compartí el link
-*/
-
-// >>> REEMPLAZAR ESTE OBJETO CON TUS CREDENCIALES DE FIREBASE <<<
-
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyBvVIzwihC0EbW_kriTqTQm6wDI7vAF550",
     authDomain: "mapacolaborativosf.firebaseapp.com",
+    databaseURL: "https://mapacolaborativosf-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "mapacolaborativosf",
     storageBucket: "mapacolaborativosf.firebasestorage.app",
     messagingSenderId: "310848780402",
@@ -237,19 +218,13 @@
     measurementId: "G-6KKN6EX5LY"
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const db = firebase.database();
 </script>
-
-// >>> FIN DE CONFIGURACIÓN <<<
-
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-</script>
-
+<!-- ========== FIN CONFIGURACIÓN FIREBASE ========== -->
+  
 <!-- HERO -->
 <header class="hero">
   <div class="hero-inner">
