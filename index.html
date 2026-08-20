@@ -1023,6 +1023,7 @@
     // Clean nulls
     if (!p.images) delete p.images;
     if (!p.video) delete p.video;
+    if (!p.web) delete p.web;
     setSyncing(true);
     pointsRef.push(p)
       .then(() => {
