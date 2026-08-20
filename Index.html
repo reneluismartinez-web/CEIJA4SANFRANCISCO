@@ -4,1190 +4,2875 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mapa Colaborativo — San Francisco, Córdoba</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-
-<!-- ===== FIREBASE SDK ===== -->
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <style>
-  :root {
-    --bg-paper: #f7f5f0; --bg-card: #ffffff; --ink-primary: #1e1b16;
-    --ink-secondary: #5c564a; --ink-muted: #8a8478; --border: #e2ddd3;
-    --accent-map: #c45d3e; --accent-teal: #3a8a7f; --accent-ochre: #c89f3d;
-    --accent-indigo: #5b6fa8; --accent-rose: #b85c6e; --accent-sage: #7a9e6b;
-    --accent-stone: #9b8e7e; --accent-terra: #a05d48;
-    --shadow-soft: 0 2px 12px rgba(30,27,22,0.08);
-    --shadow-medium: 0 6px 28px rgba(30,27,22,0.12);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg-paper); color: var(--ink-primary); overflow-x: hidden; }
+:root{
+--bg:#f7f5f0;
+--card:#fff;
+--ink:#1e1b16;
+--muted:#7b756b;
+--border:#e2ddd3;
+--teal:#3a8a7f;
+--terra:#c45d3e;
+--ochre:#c89f3d;
+--shadow:0 2px 12px rgba(30,27,22,.08);
+--shadow2:0 6px 28px rgba(30,27,22,.12)
+}
 
-  /* Hero */
-  .hero { background: linear-gradient(135deg, #2d2924 0%, #3f3a33 100%); color: #f0ebe3; padding: 28px 32px 22px; position: relative; overflow: hidden; }
-  .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.035'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
-  .hero-inner { position: relative; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
-  .hero-title { font-family: 'Libre Baskerville', serif; font-size: 1.7rem; font-weight: 700; line-height: 1.25; }
-  .hero-title i { color: var(--accent-ochre); margin-right: 10px; font-size: 1.3rem; }
-  .hero-sub { font-size: 0.92rem; color: #b5aea3; margin-top: 6px; font-weight: 300; }
-  .hero-stats { display: flex; gap: 24px; }
-  .hero-stat { text-align: center; }
-  .hero-stat .num { font-family: 'Libre Baskerville', serif; font-size: 1.6rem; font-weight: 700; color: var(--accent-ochre); line-height: 1; }
-  .hero-stat .lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9e978a; margin-top: 4px; }
-  .connection-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; padding: 4px 12px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #b5aea3; margin-top: 8px; }
-  .connection-badge.online { background: rgba(58,138,127,0.2); color: #7ddbc9; }
-  .connection-badge.offline { background: rgba(196,93,62,0.2); color: #f0a08a; }
-  .connection-badge i { font-size: 0.6rem; }
-  .user-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 4px 12px; border-radius: 4px; background: rgba(200,159,61,0.15); color: #d4c49a; margin-top: 8px; margin-left: 8px; cursor: pointer; transition: background 0.15s ease; }
-  .user-badge:hover { background: rgba(200,159,61,0.3); }
-  .user-badge .avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--accent-ochre); color: #2d2924; font-size: 0.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+*{box-sizing:border-box;margin:0;padding:0}
 
-  /* Filter bar */
-  .filter-bar { position: sticky; top: 0; z-index: 1000; background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 10px 24px; box-shadow: var(--shadow-soft); }
-  .filter-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .filter-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); font-weight: 600; white-space: nowrap; }
-  .filter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); transition: all 0.18s ease; user-select: none; white-space: nowrap; }
-  .filter-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
-  .filter-chip.active { border-color: transparent; color: #fff; }
-  .filter-chip .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .filter-chip .count { font-size: 0.7rem; opacity: 0.75; margin-left: 2px; }
+body{
+font-family:'DM Sans',sans-serif;
+background:var(--bg);
+color:var(--ink);
+overflow-x:hidden
+}
 
-  .filter-actions { margin-left: auto; display: flex; gap: 8px; }
-  .btn { padding: 7px 16px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); transition: all 0.15s ease; font-family: inherit; color: var(--ink-primary); }
-  .btn:hover { background: var(--bg-paper); }
-  .btn-primary { background: var(--accent-teal); color: #fff; border-color: var(--accent-teal); }
-  .btn-primary:hover { background: #2f756b; }
-  .btn-accent { background: var(--accent-map); color: #fff; border-color: var(--accent-map); }
-  .btn-accent:hover { background: #a64d30; }
-  .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-muted); }
-  .btn-ghost:hover { background: var(--bg-paper); color: var(--ink-primary); }
-  .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+.hero{
+background:linear-gradient(135deg,#2d2924,#3f3a33);
+color:#f0ebe3;
+padding:28px 32px 22px
+}
 
-  /* Main */
-  .main { max-width: 1400px; margin: 0 auto; padding: 20px 24px 32px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+.hero-inner{
+max-width:1400px;
+margin:auto;
+display:flex;
+justify-content:space-between;
+align-items:flex-end;
+gap:16px;
+flex-wrap:wrap
+}
 
-  /* Map */
-  .map-card { background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-soft); overflow: hidden; display: flex; flex-direction: column; }
-  .map-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .map-header h2 { font-family: 'Libre Baskerville', serif; font-size: 1.05rem; font-weight: 700; }
-  .map-header p { font-size: 0.78rem; color: var(--ink-muted); margin-top: 2px; }
-  .map-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; background: #eef6f4; color: var(--accent-teal); font-weight: 600; }
-  #map { height: 620px; width: 100%; }
+.hero-title{
+font-family:'Libre Baskerville',serif;
+font-size:1.7rem;
+font-weight:700
+}
 
-  /* Sidebar */
-  .sidebar { display: flex; flex-direction: column; gap: 16px; }
-  .side-card { background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-soft); overflow: hidden; }
-  .side-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .side-header h3 { font-family: 'Libre Baskerville', serif; font-size: 0.95rem; font-weight: 700; }
-  .side-header p { font-size: 0.75rem; color: var(--ink-muted); margin-top: 2px; }
-  .side-body { padding: 10px 0; max-height: 380px; overflow-y: auto; }
-  .point-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; cursor: pointer; transition: background 0.12s ease; border-bottom: 1px solid #f0ece5; }
-  .point-item:last-child { border-bottom: none; }
-  .point-item:hover { background: #faf8f4; }
-  .point-item .p-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #fff; flex-shrink: 0; margin-top: 1px; }
-  .point-item .p-info { flex: 1; min-width: 0; }
-  .point-item .p-name { font-size: 0.82rem; font-weight: 600; color: var(--ink-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .point-item .p-cat { font-size: 0.7rem; color: var(--ink-muted); text-transform: capitalize; }
-  .point-item .p-author { font-size: 0.68rem; color: var(--accent-ochre); font-weight: 500; margin-top: 2px; }
-  .point-item .p-meta { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-  .point-item .p-meta i { font-size: 0.65rem; color: var(--ink-muted); }
-  .point-item .p-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s ease; }
-  .point-item:hover .p-actions { opacity: 1; }
-  .point-item .p-actions i { color: var(--ink-muted); font-size: 0.75rem; padding: 4px; cursor: pointer; }
-  .point-item .p-actions i:hover { color: var(--accent-map); }
+.hero-title i{
+color:var(--ochre);
+margin-right:10px
+}
 
-  .empty-state { padding: 28px; text-align: center; color: var(--ink-muted); font-size: 0.85rem; }
-  .empty-state i { font-size: 1.8rem; margin-bottom: 10px; display: block; color: #d4cfc5; }
+.hero-sub{
+font-size:.92rem;
+color:#b5aea3;
+margin-top:6px
+}
 
-  /* Instructions */
-  .instruction-list { padding: 14px 18px; }
-  .instruction-list li { font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 8px; line-height: 1.5; list-style: none; position: relative; padding-left: 18px; }
-  .instruction-list li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-ochre); }
+.hero-stats{
+display:flex;
+gap:24px
+}
 
-  /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(30,27,22,0.45); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
-  .modal-overlay.show { display: flex; }
-  .modal { background: var(--bg-card); border-radius: 10px; width: 92%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: var(--shadow-medium); animation: modalIn 0.25s ease; }
-  .modal.wide { max-width: 640px; }
-  @keyframes modalIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-  .modal-header { padding: 18px 22px 0; }
-  .modal-header h3 { font-family: 'Libre Baskerville', serif; font-size: 1.15rem; }
-  .modal-header p { font-size: 0.8rem; color: var(--ink-muted); margin-top: 4px; }
-  .modal-body { padding: 16px 22px; }
-  .form-row { margin-bottom: 14px; }
-  .form-row label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--ink-secondary); margin-bottom: 5px; }
-  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border); font-family: inherit; font-size: 0.85rem; color: var(--ink-primary); background: var(--bg-card); transition: border-color 0.15s ease; }
-  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--accent-teal); }
-  .form-row textarea { resize: vertical; min-height: 80px; }
-  .form-row small { font-size: 0.72rem; color: var(--ink-muted); display: block; margin-top: 3px; }
-  .modal-footer { padding: 0 22px 18px; display: flex; justify-content: flex-end; gap: 8px; }
+.hero-stat{text-align:center}
 
-  /* Author selector */
-  .author-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-  .author-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 4px; background: #faf8f4; border: 1px solid var(--border); font-size: 0.78rem; color: var(--ink-secondary); cursor: pointer; transition: all 0.15s ease; }
-  .author-chip:hover { background: #f0ece5; }
-  .author-chip.selected { background: var(--accent-teal); color: #fff; border-color: var(--accent-teal); }
+.hero-stat .num{
+font-family:'Libre Baskerville',serif;
+font-size:1.6rem;
+font-weight:700;
+color:var(--ochre)
+}
 
-  /* Image upload */
-  .img-upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.15s ease; background: #faf8f4; }
-  .img-upload-zone:hover { border-color: var(--accent-teal); background: #f5f3ee; }
-  .img-upload-zone i { font-size: 1.4rem; color: var(--ink-muted); margin-bottom: 6px; display: block; }
-  .img-upload-zone span { font-size: 0.78rem; color: var(--ink-muted); }
-  .img-upload-zone input { display: none; }
-  .img-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-  .img-preview { position: relative; border-radius: 6px; overflow: hidden; aspect-ratio: 4/3; background: #f0ece5; }
-  .img-preview img { width: 100%; height: 100%; object-fit: cover; }
-  .img-preview .remove-img { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .img-preview .remove-img:hover { background: var(--accent-map); }
+.hero-stat .lbl{
+font-size:.68rem;
+text-transform:uppercase;
+letter-spacing:.08em;
+color:#9e978a
+}
 
-  /* Video input */
-  .video-row { display: flex; gap: 8px; align-items: center; }
-  .video-row input { flex: 1; }
+.connection-badge,
+.user-badge{
+display:inline-flex;
+align-items:center;
+gap:6px;
+font-size:.72rem;
+padding:4px 12px;
+border-radius:4px;
+margin-top:8px
+}
 
-  /* Media gallery in popup */
-  .popup-media { margin-top: 8px; }
-  .popup-media img { width: 100%; border-radius: 6px; margin-bottom: 6px; max-height: 160px; object-fit: cover; }
-  .popup-media .vid-wrap { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 6px; margin-bottom: 6px; }
-  .popup-media .vid-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+.connection-badge{
+background:rgba(255,255,255,.08);
+color:#b5aea3
+}
 
-  /* Add category inline */
-  .add-cat-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .add-cat-row input { flex: 1; }
-  .add-cat-row input[type="color"] { width: 44px; padding: 2px; height: 36px; cursor: pointer; }
+.connection-badge.online{
+background:rgba(58,138,127,.2);
+color:#7ddbc9
+}
 
-  /* Custom marker */
-  .custom-marker { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; }
-  .custom-marker i { transform: rotate(45deg); color: #fff; font-size: 0.65rem; }
+.connection-badge.offline{
+background:rgba(196,93,62,.2);
+color:#f0a08a
+}
 
-  /* Toast */
-  .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; }
-  .toast { background: var(--ink-primary); color: #f0ebe3; padding: 10px 18px; border-radius: 6px; font-size: 0.82rem; box-shadow: var(--shadow-medium); animation: toastIn 0.3s ease; display: flex; align-items: center; gap: 8px; }
-  .toast.success { background: var(--accent-teal); }
-  .toast.error { background: var(--accent-map); }
-  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.user-badge{
+background:rgba(200,159,61,.15);
+color:#d4c49a;
+margin-left:8px;
+cursor:pointer
+}
 
-  /* Sync indicator */
-  .sync-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; padding: 3px 10px; border-radius: 4px; background: #f0ece5; color: var(--ink-muted); }
-  .sync-indicator i { font-size: 0.6rem; }
-  .sync-indicator.syncing i { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+.avatar{
+width:18px;
+height:18px;
+border-radius:50%;
+background:var(--ochre);
+color:#2d2924;
+font-size:.6rem;
+font-weight:700;
+display:flex;
+align-items:center;
+justify-content:center
+}
 
-  /* Welcome modal */
-  .welcome-hero { text-align: center; padding: 10px 0 6px; }
-  .welcome-hero i { font-size: 2.4rem; color: var(--accent-teal); margin-bottom: 10px; }
-  .welcome-hero h2 { font-family: 'Libre Baskerville', serif; font-size: 1.3rem; }
-  .welcome-hero p { font-size: 0.85rem; color: var(--ink-muted); margin-top: 4px; }
-  .student-list { padding: 10px 22px; }
-  .student-list h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 8px; }
-  .student-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 4px; background: #f5f3ee; border: 1px solid var(--border); font-size: 0.78rem; margin: 3px; }
-  .student-tag .s-avatar { width: 16px; height: 16px; border-radius: 50%; background: var(--accent-indigo); color: #fff; font-size: 0.55rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.filter-bar{
+position:sticky;
+top:0;
+z-index:1000;
+background:var(--card);
+border-bottom:1px solid var(--border);
+padding:10px 24px;
+box-shadow:var(--shadow)
+}
 
-  /* Responsive */
-  @media (max-width: 960px) { .main { grid-template-columns: 1fr; } .hero-inner { flex-direction: column; align-items: flex-start; } #map { height: 460px; } .modal { max-width: 92%; } }
-  @media (max-width: 560px) { .hero { padding: 20px 18px 16px; } .hero-title { font-size: 1.35rem; } .main { padding: 14px 14px 24px; } #map { height: 360px; } .filter-actions { width: 100%; margin-left: 0; margin-top: 6px; } .filter-actions .btn { flex: 1; } }
+.filter-inner{
+max-width:1400px;
+margin:auto;
+display:flex;
+align-items:center;
+gap:12px;
+flex-wrap:wrap
+}
 
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #d4cfc5; border-radius: 3px; }
+.filter-label{
+font-size:.75rem;
+text-transform:uppercase;
+letter-spacing:.08em;
+color:var(--muted);
+font-weight:600
+}
 
-  .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: var(--shadow-medium); border: 1px solid var(--border); }
-  .leaflet-popup-content { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; margin: 12px 16px; color: var(--ink-primary); max-width: 280px; }
-  .leaflet-popup-content b { font-family: 'Libre Baskerville', serif; }
-  .leaflet-popup-content .popup-author { font-size: 0.72rem; color: var(--accent-ochre); margin-top: 4px; font-weight: 500; }
+.filter-chips{
+display:flex;
+gap:8px;
+flex-wrap:wrap
+}
+
+.filter-chip{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:6px 14px;
+border-radius:6px;
+font-size:.82rem;
+font-weight:500;
+cursor:pointer;
+border:1px solid var(--border);
+background:var(--card);
+white-space:nowrap
+}
+
+.filter-chip.active{
+color:#fff;
+border-color:transparent
+}
+
+.dot{
+width:8px;
+height:8px;
+border-radius:50%
+}
+
+.count{
+font-size:.7rem;
+opacity:.75
+}
+
+.filter-actions{
+margin-left:auto;
+display:flex;
+gap:8px;
+align-items:center
+}
+
+.btn{
+padding:7px 16px;
+border-radius:6px;
+font-size:.8rem;
+font-weight:600;
+cursor:pointer;
+border:1px solid var(--border);
+background:var(--card);
+font-family:inherit;
+color:var(--ink)
+}
+
+.btn:hover{background:var(--bg)}
+
+.btn-primary{
+background:var(--teal);
+color:#fff;
+border-color:var(--teal)
+}
+
+.btn-accent{
+background:var(--terra);
+color:#fff;
+border-color:var(--terra)
+}
+
+.btn-ghost{
+background:transparent;
+border-color:transparent;
+color:var(--muted)
+}
+
+.btn-sm{
+padding:5px 10px;
+font-size:.75rem
+}
+
+.sync-indicator{
+display:inline-flex;
+align-items:center;
+gap:6px;
+font-size:.72rem;
+padding:3px 10px;
+border-radius:4px;
+background:#f0ece5;
+color:var(--muted)
+}
+
+.syncing i{
+animation:spin 1s linear infinite
+}
+
+@keyframes spin{
+to{transform:rotate(360deg)}
+}
+
+.main{
+max-width:1400px;
+margin:auto;
+padding:20px 24px 32px;
+display:grid;
+grid-template-columns:1fr 340px;
+gap:20px
+}
+
+.map-card,
+.side-card{
+background:var(--card);
+border:1px solid var(--border);
+border-radius:8px;
+box-shadow:var(--shadow);
+overflow:hidden
+}
+
+.map-card{
+display:flex;
+flex-direction:column
+}
+
+.map-header,
+.side-header{
+padding:14px 18px;
+border-bottom:1px solid var(--border)
+}
+
+.map-header{
+display:flex;
+justify-content:space-between;
+align-items:center
+}
+
+.map-header h2,
+.side-header h3{
+font-family:'Libre Baskerville',serif;
+font-weight:700
+}
+
+.map-header h2{font-size:1.05rem}
+
+.map-header p,
+.side-header p{
+font-size:.78rem;
+color:var(--muted);
+margin-top:2px
+}
+
+.map-badge{
+font-size:.7rem;
+padding:3px 10px;
+border-radius:4px;
+background:#eef6f4;
+color:var(--teal);
+font-weight:600
+}
+
+#map{
+height:620px;
+width:100%
+}
+
+.sidebar{
+display:flex;
+flex-direction:column;
+gap:16px
+}
+
+.side-header h3{font-size:.95rem}
+
+.side-body{
+max-height:380px;
+overflow-y:auto
+}
+
+.point-item{
+display:flex;
+align-items:flex-start;
+gap:10px;
+padding:10px 16px;
+cursor:pointer;
+border-bottom:1px solid #f0ece5
+}
+
+.point-item:hover{
+background:#faf8f4
+}
+
+.p-icon{
+width:28px;
+height:28px;
+border-radius:6px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:.7rem;
+color:#fff;
+flex-shrink:0
+}
+
+.p-info{
+flex:1;
+min-width:0
+}
+
+.p-name{
+font-size:.82rem;
+font-weight:600;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
+}
+
+.p-cat{
+font-size:.7rem;
+color:var(--muted);
+text-transform:capitalize
+}
+
+.p-author{
+font-size:.68rem;
+color:var(--ochre);
+font-weight:500;
+margin-top:2px
+}
+
+.p-meta{
+display:flex;
+gap:6px;
+margin-top:2px;
+color:var(--muted);
+font-size:.65rem
+}
+
+.p-actions{
+display:flex;
+gap:6px;
+opacity:0
+}
+
+.point-item:hover .p-actions{
+opacity:1
+}
+
+.p-actions i{
+color:var(--muted);
+font-size:.75rem;
+padding:4px;
+cursor:pointer
+}
+
+.p-actions i:hover{
+color:var(--terra)
+}
+
+.empty-state{
+padding:28px;
+text-align:center;
+color:var(--muted);
+font-size:.85rem
+}
+
+.empty-state i{
+font-size:1.8rem;
+margin-bottom:10px;
+display:block;
+color:#d4cfc5
+}
+
+.instruction-list{
+padding:14px 18px
+}
+
+.instruction-list li{
+font-size:.8rem;
+color:#5c564a;
+margin-bottom:8px;
+line-height:1.5;
+list-style:none;
+position:relative;
+padding-left:18px
+}
+
+.instruction-list li:before{
+content:'';
+position:absolute;
+left:0;
+top:8px;
+width:6px;
+height:6px;
+border-radius:50%;
+background:var(--ochre)
+}
+
+.modal-overlay{
+position:fixed;
+inset:0;
+background:rgba(30,27,22,.45);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:2000;
+backdrop-filter:blur(4px)
+}
+
+.modal-overlay.show{
+display:flex
+}
+
+.modal{
+background:var(--card);
+border-radius:10px;
+width:92%;
+max-width:520px;
+max-height:92vh;
+overflow-y:auto;
+box-shadow:var(--shadow2)
+}
+
+.modal.wide{
+max-width:640px
+}
+
+.modal-header{
+padding:18px 22px 0
+}
+
+.modal-header h3,
+.welcome h2{
+font-family:'Libre Baskerville',serif
+}
+
+.modal-header h3{
+font-size:1.15rem
+}
+
+.modal-header p{
+font-size:.8rem;
+color:var(--muted);
+margin-top:4px
+}
+
+.modal-body{
+padding:16px 22px
+}
+
+.form-row{
+margin-bottom:14px
+}
+
+.form-row label{
+display:block;
+font-size:.78rem;
+font-weight:600;
+color:#5c564a;
+margin-bottom:5px
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea{
+width:100%;
+padding:9px 12px;
+border-radius:6px;
+border:1px solid var(--border);
+font-family:inherit;
+font-size:.85rem;
+color:var(--ink);
+background:var(--card)
+}
+
+.form-row textarea{
+resize:vertical;
+min-height:80px
+}
+
+.form-row small{
+font-size:.72rem;
+color:var(--muted);
+display:block;
+margin-top:3px
+}
+
+.modal-footer{
+padding:0 22px 18px;
+display:flex;
+justify-content:flex-end;
+gap:8px
+}
+
+.author-box{
+padding:9px 12px;
+background:#faf8f4;
+border:1px solid var(--border);
+border-radius:6px;
+font-size:.85rem
+}
+
+.img-upload-zone{
+border:2px dashed var(--border);
+border-radius:8px;
+padding:16px;
+text-align:center;
+cursor:pointer;
+background:#faf8f4
+}
+
+.img-upload-zone i{
+font-size:1.4rem;
+color:var(--muted);
+display:block;
+margin-bottom:6px
+}
+
+.img-upload-zone span{
+font-size:.78rem;
+color:var(--muted)
+}
+
+.img-preview-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-top:10px
+}
+
+.img-preview{
+position:relative;
+border-radius:6px;
+overflow:hidden;
+aspect-ratio:4/3;
+background:#f0ece5
+}
+
+.img-preview img{
+width:100%;
+height:100%;
+object-fit:cover
+}
+
+.remove-img{
+position:absolute;
+top:4px;
+right:4px;
+width:22px;
+height:22px;
+border:0;
+border-radius:50%;
+background:rgba(0,0,0,.6);
+color:#fff;
+cursor:pointer
+}
+
+.video-row{
+display:flex;
+gap:8px
+}
+
+.video-row input{
+flex:1
+}
+
+.popup-media{
+margin-top:8px
+}
+
+.popup-media img{
+width:100%;
+border-radius:6px;
+margin-bottom:6px;
+max-height:160px;
+object-fit:cover
+}
+
+.vid-wrap{
+position:relative;
+padding-bottom:56.25%;
+height:0;
+overflow:hidden;
+border-radius:6px
+}
+
+.vid-wrap iframe{
+position:absolute;
+inset:0;
+width:100%;
+height:100%;
+border:0
+}
+
+.popup-link{
+display:inline-block;
+margin-top:8px;
+color:var(--teal);
+font-weight:600;
+text-decoration:none
+}
+
+.student-list{
+padding:10px 22px
+}
+
+.student-list h4{
+font-size:.78rem;
+text-transform:uppercase;
+letter-spacing:.06em;
+color:var(--muted);
+margin-bottom:8px
+}
+
+.student-tag{
+display:inline-flex;
+align-items:center;
+gap:5px;
+padding:4px 10px;
+border-radius:4px;
+background:#f5f3ee;
+border:1px solid var(--border);
+font-size:.78rem;
+margin:3px
+}
+
+.s-avatar{
+width:16px;
+height:16px;
+border-radius:50%;
+background:#5b6fa8;
+color:#fff;
+font-size:.55rem;
+font-weight:700;
+display:flex;
+align-items:center;
+justify-content:center
+}
+
+.toast-container{
+position:fixed;
+bottom:20px;
+right:20px;
+z-index:3000;
+display:flex;
+flex-direction:column;
+gap:8px
+}
+
+.toast{
+background:var(--ink);
+color:#f0ebe3;
+padding:10px 18px;
+border-radius:6px;
+font-size:.82rem;
+box-shadow:var(--shadow2);
+display:flex;
+align-items:center;
+gap:8px
+}
+
+.toast.success{background:var(--teal)}
+.toast.error{background:var(--terra)}
+
+.custom-marker{
+width:32px;
+height:32px;
+border-radius:50% 50% 50% 0;
+transform:rotate(-45deg);
+border:2px solid #fff;
+box-shadow:0 2px 6px rgba(0,0,0,.25);
+display:flex;
+align-items:center;
+justify-content:center
+}
+
+.custom-marker i{
+transform:rotate(45deg);
+color:#fff;
+font-size:.65rem
+}
+
+.welcome{
+text-align:center;
+padding:22px 22px 8px
+}
+
+.welcome>i{
+font-size:2.4rem;
+color:var(--teal);
+margin-bottom:10px
+}
+
+.welcome h2{
+font-size:1.3rem
+}
+
+.welcome p{
+font-size:.85rem;
+color:var(--muted);
+margin-top:4px
+}
+
+@media(max-width:960px){
+.main{grid-template-columns:1fr}
+.hero-inner{flex-direction:column;align-items:flex-start}
+#map{height:460px}
+.modal{max-width:92%}
+}
+
+@media(max-width:560px){
+.hero{padding:20px 18px 16px}
+.hero-title{font-size:1.35rem}
+.main{padding:14px 14px 24px}
+#map{height:360px}
+.filter-actions{
+width:100%;
+margin-left:0
+}
+.filter-actions .btn{flex:1}
+}
 </style>
 </head>
+
 <body>
 
-<!-- ========== CONFIGURACIÓN FIREBASE ========== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBvVIzwihC0EbW_kriTqTQm6wDI7vAF550",
-    authDomain: "mapacolaborativosf.firebaseapp.com",
-    databaseURL: "https://mapacolaborativosf-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "mapacolaborativosf",
-    storageBucket: "mapacolaborativosf.firebasestorage.app",
-    messagingSenderId: "310848780402",
-    appId: "1:310848780402:web:f1bdabc3dce42d0284eaeb",
-    measurementId: "G-6KKN6EX5LY"
-  };
+const firebaseConfig={
+apiKey:"AIzaSyBvVIzwihC0EbW_kriTqTQm6wDI7vAF550",
+authDomain:"mapacolaborativosf.firebaseapp.com",
+databaseURL:"https://mapacolaborativosf-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"mapacolaborativosf",
+storageBucket:"mapacolaborativosf.firebasestorage.app",
+messagingSenderId:"310848780402",
+appId:"1:310848780402:web:f1bdabc3dce42d0284eaeb",
+measurementId:"G-6KKN6EX5LY"
+};
 
-  firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 
-  const auth = firebase.auth();
-  const db = firebase.database();
+const auth=firebase.auth();
+const db=firebase.database();
 </script>
-<!-- ========== FIN CONFIGURACIÓN FIREBASE ========== -->
-  
-<!-- HERO -->
+
 <header class="hero">
-  <div class="hero-inner">
-    <div>
-      <div class="hero-title"><i class="fas fa-map-location-dot"></i>Mapa Colaborativo de San Francisco</div>
-      <div class="hero-sub">Provincia de Córdoba, Argentina · Trabajo colaborativo con identificación de autores</div>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;">
-        <div class="connection-badge offline" id="conn-badge"><i class="fas fa-circle"></i><span id="conn-text">Conectando...</span></div>
-        <div class="user-badge" id="user-badge" style="display:none;" onclick="window.changeUser()"><span class="avatar" id="user-avatar"></span><span id="user-name"></span></div>
-      </div>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="num" id="stat-total">0</div><div class="lbl">Puntos</div></div>
-      <div class="hero-stat"><div class="num" id="stat-cats">0</div><div class="lbl">Rubros</div></div>
-      <div class="hero-stat"><div class="num" id="stat-online">0</div><div class="lbl">En línea</div></div>
-    </div>
-  </div>
+<div class="hero-inner">
+<div>
+<div class="hero-title">
+<i class="fas fa-map-location-dot"></i>
+Mapa Colaborativo de San Francisco
+</div>
+
+<div class="hero-sub">
+Provincia de Córdoba, Argentina · Trabajo colaborativo con identificación de autores
+</div>
+
+<div>
+<div class="connection-badge offline" id="conn-badge">
+<i class="fas fa-circle"></i>
+<span id="conn-text">Conectando...</span>
+</div>
+
+<div class="user-badge" id="user-badge" style="display:none" onclick="changeUser()">
+<span class="avatar" id="user-avatar"></span>
+<span id="user-name"></span>
+</div>
+</div>
+</div>
+
+<div class="hero-stats">
+<div class="hero-stat">
+<div class="num" id="stat-total">0</div>
+<div class="lbl">Puntos</div>
+</div>
+
+<div class="hero-stat">
+<div class="num" id="stat-cats">0</div>
+<div class="lbl">Rubros</div>
+</div>
+
+<div class="hero-stat">
+<div class="num" id="stat-online">0</div>
+<div class="lbl">En línea</div>
+</div>
+</div>
+</div>
 </header>
 
-<!-- FILTER BAR -->
 <div class="filter-bar">
-  <div class="filter-inner">
-    <span class="filter-label">Filtrar por rubro</span>
-    <div id="filter-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-    <div class="filter-actions">
-      <span class="sync-indicator" id="sync-ind"><i class="fas fa-check"></i><span id="sync-text">Sincronizado</span></span>
-      <button class="btn" id="btn-export"><i class="fas fa-download" style="margin-right:5px;"></i>Exportar</button>
-      <button class="btn btn-accent" id="btn-add-mode"><i class="fas fa-plus" style="margin-right:5px;"></i>Agregar punto</button>
-      <button class="btn btn-primary" id="btn-add-cat"><i class="fas fa-tags" style="margin-right:5px;"></i>Nuevo rubro</button>
-    </div>
-  </div>
+<div class="filter-inner">
+
+<span class="filter-label">Filtrar por rubro</span>
+
+<div id="filter-chips" class="filter-chips"></div>
+
+<div class="filter-actions">
+
+<span class="sync-indicator" id="sync-ind">
+<i class="fas fa-check"></i>
+<span id="sync-text">Sincronizado</span>
+</span>
+
+<button class="btn" id="btn-export">
+<i class="fas fa-download"></i> Exportar
+</button>
+
+<button class="btn btn-accent" id="btn-add-mode">
+<i class="fas fa-plus"></i> Agregar punto
+</button>
+
+<button class="btn btn-primary" id="btn-add-cat">
+<i class="fas fa-tags"></i> Nuevo rubro
+</button>
+
+</div>
+</div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
-  <div class="map-card">
-    <div class="map-header">
-      <div>
-        <h2>Plano de la ciudad</h2>
-        <p>Hacé clic en el mapa para agregar un nuevo punto de interés</p>
-      </div>
-      <span class="map-badge" id="add-mode-badge" style="display:none;">Modo: agregando punto</span>
-    </div>
-    <div id="map"></div>
-  </div>
 
-  <aside class="sidebar">
-    <div class="side-card">
-      <div class="side-header">
-        <h3><i class="fas fa-list-ul" style="margin-right:6px;color:var(--accent-ochre);"></i>Puntos registrados</h3>
-        <p>Seleccioná un punto para centrarlo en el mapa</p>
-      </div>
-      <div class="side-body" id="points-list"></div>
-    </div>
+<div class="map-card">
 
-    <div class="side-card">
-      <div class="side-header">
-        <h3><i class="fas fa-users" style="margin-right:6px;color:var(--accent-indigo);"></i>Estudiantes que aportaron</h3>
-        <p>Nombres de quienes cargaron o editaron puntos</p>
-      </div>
-      <div class="student-list" id="student-list">
-        <div class="empty-state" style="padding:16px;"><i class="fas fa-user-group"></i>Todavía no hay aportes.</div>
-      </div>
-    </div>
-
-    <div class="side-card">
-      <div class="side-header">
-        <h3><i class="fas fa-circle-info" style="margin-right:6px;color:var(--accent-teal);"></i>Instrucciones</h3>
-      </div>
-      <ul class="instruction-list">
-        <li>Ingresá tu <b>nombre y apellido</b> al entrar para identificar tus aportes.</li>
-        <li>Podés agregar <b>fotos</b> (desde tu dispositivo) y <b>videos de YouTube</b> a cada punto.</li>
-        <li>También podés <b>agregar tu nombre</b> a puntos existentes que no tengan autor.</li>
-        <li>Este mapa se sincroniza <b>en tiempo real</b> con todos los que lo abran.</li>
-        <li>Cuando un compañero agrega algo, aparece instantáneamente en tu pantalla.</li>
-        <li>Exportá los datos en JSON para hacer un backup.</li>
-      </ul>
-    </div>
-  </aside>
+<div class="map-header">
+<div>
+<h2>Plano de la ciudad</h2>
+<p>Hacé clic en el mapa para agregar un nuevo punto de interés</p>
 </div>
 
-<!-- WELCOME / LOGIN MODAL -->
+<span class="map-badge" id="add-mode-badge" style="display:none">
+Modo: agregando punto
+</span>
+</div>
+
+<div id="map"></div>
+
+</div>
+
+<aside class="sidebar">
+
+<div class="side-card">
+
+<div class="side-header">
+<h3>
+<i class="fas fa-list-ul" style="color:var(--ochre)"></i>
+Puntos registrados
+</h3>
+
+<p>Seleccioná un punto para centrarlo en el mapa</p>
+</div>
+
+<div class="side-body" id="points-list"></div>
+
+</div>
+
+<div class="side-card">
+
+<div class="side-header">
+<h3>
+<i class="fas fa-users" style="color:#5b6fa8"></i>
+Estudiantes que aportaron
+</h3>
+
+<p>Nombres de quienes cargaron o editaron puntos</p>
+</div>
+
+<div class="student-list" id="student-list">
+<div class="empty-state">
+<i class="fas fa-user-group"></i>
+Todavía no hay aportes.
+</div>
+</div>
+
+</div>
+
+<div class="side-card">
+
+<div class="side-header">
+<h3>
+<i class="fas fa-circle-info" style="color:var(--teal)"></i>
+Instrucciones
+</h3>
+</div>
+
+<ul class="instruction-list">
+
+<li>Ingresá tu <b>nombre y apellido</b> al entrar para identificar tus aportes.</li>
+
+<li>Podés agregar <b>fotos</b> y <b>videos de YouTube</b> a cada punto.</li>
+
+<li>También podés agregar o modificar la <b>página web</b> de un lugar.</li>
+
+<li>Podés agregar tu nombre a puntos existentes que no tengan autor.</li>
+
+<li>Este mapa se sincroniza <b>en tiempo real</b>.</li>
+
+<li>Cuando un compañero agrega algo, aparece instantáneamente.</li>
+
+<li>Podés exportar los datos en JSON para hacer un backup.</li>
+
+</ul>
+
+</div>
+
+</aside>
+</div>
+
 <div class="modal-overlay show" id="modal-welcome">
-  <div class="modal" style="max-width:420px;">
-    <div class="welcome-hero">
-      <i class="fas fa-map-location-dot"></i>
-      <h2>¡Bienvenido al Mapa Colaborativo!</h2>
-      <p>San Francisco, Córdoba · Trabajo en equipo</p>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>Ingresá tu nombre y apellido</label>
-        <input type="text" id="welcome-name" placeholder="Ej: María González" onkeydown="if(event.key==='Enter')window.saveWelcome()">
-        <small>Este nombre aparecerá junto a cada punto que agregues o edites.</small>
-      </div>
-    </div>
-    <div class="modal-footer" style="justify-content:center;">
-      <button class="btn btn-primary" style="padding:9px 28px;font-size:0.9rem;" onclick="window.saveWelcome()">Entrar al mapa</button>
-    </div>
-  </div>
+
+<div class="modal">
+
+<div class="welcome">
+
+<i class="fas fa-map-location-dot"></i>
+
+<h2>¡Bienvenido al Mapa Colaborativo!</h2>
+
+<p>San Francisco, Córdoba · Trabajo en equipo</p>
+
 </div>
 
-<!-- ADD POINT MODAL -->
+<div class="modal-body">
+
+<div class="form-row">
+
+<label>Ingresá tu nombre y apellido</label>
+
+<input
+type="text"
+id="welcome-name"
+placeholder="Ej: María González"
+>
+
+<small>
+Este nombre aparecerá junto a cada punto que agregues o edites.
+</small>
+
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button class="btn btn-primary" id="btn-welcome">
+Entrar al mapa
+</button>
+
+</div>
+
+</div>
+</div>
+
 <div class="modal-overlay" id="modal-point">
-  <div class="modal wide">
-    <div class="modal-header">
-      <h3>Agregar punto de interés</h3>
-      <p>Completá los datos del nuevo lugar · Autor: <b id="add-author-display" style="color:var(--accent-teal);"></b></p>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>Nombre del lugar</label>
-        <input type="text" id="inp-name" placeholder="Ej: Escuela Normal Superior">
-      </div>
-      <div class="form-row">
-        <label>Rubro</label>
-        <select id="inp-cat"></select>
-      </div>
-      <div class="form-row">
-        <label>Descripción / Datos del lugar</label>
-        <textarea id="inp-desc" placeholder="Historia, horarios, datos de contacto, características..."></textarea>
-        <small>Podés escribir todo lo que consideres relevante sobre este lugar.</small>
-      </div>
 
-      <!-- Fotos -->
-      <div class="form-row">
-        <label>Fotos (máx. 3)</label>
-        <div class="img-upload-zone" id="img-zone-add" onclick="document.getElementById('inp-img').click()">
-          <i class="fas fa-camera"></i>
-          <span>Hacé clic para subir fotos desde tu dispositivo</span>
-        </div>
-        <input type="file" id="inp-img" accept="image/*" multiple onchange="window.handleImageUpload(this,'add')">
-        <div class="img-preview-grid" id="img-preview-add"></div>
-        <small>Podés subir hasta 3 fotos. Se reducirán automáticamente para optimizar la carga.</small>
-      </div>
+<div class="modal wide">
 
-      <!-- Video -->
-      <div class="form-row">
-        <label>Video de YouTube (opcional)</label>
-        <div class="video-row">
-          <input type="text" id="inp-video" placeholder="Pegá acá el link de YouTube">
-        </div>
-        <small>Ejemplo: https://www.youtube.com/watch?v=ABC123 o https://youtu.be/ABC123</small>
-      </div>
+<div class="modal-header">
 
-      <!-- Página web -->
+<h3>Agregar punto de interés</h3>
+
+<p>
+Completá los datos del nuevo lugar · Autor:
+<b id="add-author-display"></b>
+</p>
+
+</div>
+
+<div class="modal-body">
+
 <div class="form-row">
-  <label>Página web del lugar (opcional)</label>
-  <div class="video-row">
-    <input type="url" id="edit-web" placeholder="https://www.ejemplo.com">
-  </div>
-  <small>Podés agregar el sitio oficial o una página con información sobre este lugar.</small>
-</div>
-      
-      
-      <!-- Página web -->
-  <div class="form-row">
-  <label>Página web del lugar (opcional)</label>
-  <div class="video-row">
-    <input type="url" id="inp-web" placeholder="https://www.ejemplo.com">
-  </div>
-  <small>Podés agregar el sitio oficial o una página con información sobre este lugar.</small>
-</div>
-      
-      <div class="form-row">
-        <label>Coordenadas</label>
-        <input type="text" id="inp-coords" readonly style="background:#f5f3ee;color:var(--ink-muted);">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" id="btn-cancel-point">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-point">Guardar punto</button>
-    </div>
-  </div>
+<label>Nombre del lugar *</label>
+<input id="inp-name" maxlength="150" placeholder="Ej.: Plaza Cívica">
 </div>
 
-<!-- EDIT POINT MODAL -->
-<div class="modal-overlay" id="modal-edit">
-  <div class="modal wide">
-    <div class="modal-header">
-      <h3>Editar punto de interés</h3>
-      <p>Modificá los datos del lugar seleccionado</p>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>Nombre del lugar</label>
-        <input type="text" id="edit-name">
-      </div>
-      <div class="form-row">
-        <label>Rubro</label>
-        <select id="edit-cat"></select>
-      </div>
-
-      <!-- Autor editable -->
-      <div class="form-row">
-        <label>Autor / Quién aportó este punto</label>
-        <input type="text" id="edit-author" placeholder="Nombre y apellido del estudiante">
-        <small>Si este punto no tiene autor, podés agregar tu nombre para identificar tu aporte.</small>
-      </div>
-
-      <div class="form-row">
-        <label>Descripción / Datos del lugar</label>
-        <textarea id="edit-desc"></textarea>
-      </div>
-
-      <!-- Fotos -->
-      <div class="form-row">
-        <label>Fotos (máx. 3)</label>
-        <div class="img-upload-zone" id="img-zone-edit" onclick="document.getElementById('edit-img').click()">
-          <i class="fas fa-camera"></i>
-          <span>Hacé clic para agregar más fotos</span>
-        </div>
-        <input type="file" id="edit-img" accept="image/*" multiple onchange="window.handleImageUpload(this,'edit')">
-        <div class="img-preview-grid" id="img-preview-edit"></div>
-      </div>
-
-      <!-- Video -->
-      <div class="form-row">
-        <label>Video de YouTube</label>
-        <div class="video-row">
-          <input type="text" id="edit-video" placeholder="Link de YouTube">
-          <button class="btn btn-sm" type="button" onclick="document.getElementById('edit-video').value=''"><i class="fas fa-trash"></i></button>
-        </div>
-      </div>
-
-            <!-- Página web -->
-      <div class="form-row">
-        <label>Página web del lugar (opcional)</label>
-        <div class="video-row">
-          <input type="url" id="edit-web" placeholder="https://www.ejemplo.com">
-          <button class="btn btn-sm" type="button" onclick="document.getElementById('edit-web').value=''"><i class="fas fa-trash"></i></button>
-        </div>
-        <small>Podés agregar o modificar el sitio web del lugar.</small>
-      </div>
-      
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="btn-delete-edit" style="margin-right:auto;color:var(--accent-map);"><i class="fas fa-trash" style="margin-right:5px;"></i>Eliminar</button>
-      <button class="btn" id="btn-cancel-edit">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-edit">Guardar cambios</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- ===== EDIT POINT MODAL ===== -->
-<div class="modal-overlay" id="modal-edit">
-  <div class="modal wide">
-    <div class="modal-header">
-      <h3>Editar punto de interés</h3>
-      <p>Modificá los datos del lugar y guardá los cambios.</p>
-    </div>
-
-    <div class="modal-body">
-
-      <div class="form-row">
-        <label>Nombre del lugar</label>
-        <input type="text" id="edit-name" placeholder="Nombre del lugar">
-      </div>
-
-      <div class="form-row">
-        <label>Rubro</label>
-        <select id="edit-cat"></select>
-      </div>
-
-      <div class="form-row">
-        <label>Descripción / Datos del lugar</label>
-        <textarea id="edit-desc" placeholder="Historia, horarios, datos de contacto, características..."></textarea>
-      </div>
-
-      <div class="form-row">
-        <label>Autor</label>
-        <input type="text" id="edit-author" placeholder="Nombre y apellido">
-        <small>Podés dejar el autor original o modificarlo.</small>
-      </div>
-
-      <!-- Fotos -->
-      <div class="form-row">
-        <label>Fotos (máx. 3)</label>
-
-        <div class="img-upload-zone" onclick="document.getElementById('edit-img').click()">
-          <i class="fas fa-camera"></i>
-          <span>Hacé clic para agregar fotos</span>
-        </div>
-
-        <input
-          type="file"
-          id="edit-img"
-          accept="image/*"
-          multiple
-          onchange="window.handleImageUpload(this,'edit')"
-        >
-
-        <div class="img-preview-grid" id="img-preview-edit"></div>
-
-        <small>
-          Podés tener hasta 3 fotos por punto.
-        </small>
-      </div>
-
-      <!-- Video -->
-      <div class="form-row">
-        <label>Video de YouTube (opcional)</label>
-
-        <div class="video-row">
-          <input
-            type="text"
-            id="edit-video"
-            placeholder="Pegá acá el link de YouTube"
-          >
-        </div>
-
-        <small>
-          Ejemplo: https://www.youtube.com/watch?v=ABC123
-        </small>
-      </div>
-
-      <!-- Página web -->
 <div class="form-row">
-  <label>Página web del lugar (opcional)</label>
-
-  <div class="video-row">
-    <input
-      type="url"
-      id="edit-web"
-      placeholder="https://www.ejemplo.com"
-    >
-  </div>
-
-  <small>
-    Podés agregar o modificar el sitio web del lugar.
-  </small>
+<label>Rubro *</label>
+<select id="inp-cat"></select>
 </div>
-    </div>
 
-    <div class="modal-footer">
-      <button class="btn" id="btn-cancel-edit">
-        Cancelar
-      </button>
-
-      <button class="btn btn-accent" id="btn-delete-edit">
-        <i class="fas fa-trash" style="margin-right:5px;"></i>
-        Eliminar
-      </button>
-
-      <button class="btn btn-primary" id="btn-save-edit">
-        <i class="fas fa-save" style="margin-right:5px;"></i>
-        Guardar cambios
-      </button>
-    </div>
-
-  </div>
+<div class="form-row">
+<label>Autor</label>
+<div class="author-box" id="add-author-display"></div>
 </div>
-  
-<!-- ADD CATEGORY MODAL -->
+
+<div class="form-row">
+<label>Descripción / Datos del lugar</label>
+<textarea
+id="inp-desc"
+maxlength="2000"
+placeholder="Historia, horarios, datos de contacto, características..."
+></textarea>
+</div>
+
+<div class="form-row">
+
+<label>Fotos (máx. 3)</label>
+
+<div
+class="img-upload-zone"
+onclick="document.getElementById('inp-img').click()"
+>
+
+<i class="fas fa-camera"></i>
+
+<span>
+Hacé clic para seleccionar fotos
+</span>
+
+</div>
+
+<input
+type="file"
+id="inp-img"
+accept="image/*"
+multiple
+>
+
+<div
+class="img-preview-grid"
+id="img-preview-add"
+></div>
+
+<small>
+Podés subir hasta 3 fotos. Se reducirán automáticamente.
+</small>
+
+</div>
+
+<div class="form-row">
+
+<label>Video de YouTube (opcional)</label>
+
+<input
+id="inp-video"
+type="url"
+placeholder="https://www.youtube.com/watch?v=..."
+>
+
+<small>
+También podés utilizar enlaces de YouTube Shorts o youtu.be.
+</small>
+
+</div>
+
+<div class="form-row">
+
+<label>Página web del lugar (opcional)</label>
+
+<input
+id="inp-web"
+type="url"
+placeholder="https://www.ejemplo.com"
+>
+
+<small>
+Podés agregar el sitio oficial o una página informativa.
+</small>
+
+</div>
+
+<div class="form-row">
+
+<label>Coordenadas</label>
+
+<input
+id="inp-coords"
+readonly
+style="background:#f5f3ee;color:var(--muted)"
+>
+
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button class="btn" id="btn-cancel-point">
+Cancelar
+</button>
+
+<button class="btn btn-primary" id="btn-save-point">
+Guardar punto
+</button>
+
+</div>
+
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-edit">
+
+<div class="modal wide">
+
+<div class="modal-header">
+
+<h3>Editar punto de interés</h3>
+
+<p>
+Modificá los datos del lugar y guardá los cambios.
+</p>
+
+</div>
+
+<div class="modal-body">
+
+<div class="form-row">
+
+<label>Nombre del lugar *</label>
+
+<input
+id="edit-name"
+maxlength="150"
+>
+
+</div>
+
+<div class="form-row">
+
+<label>Rubro *</label>
+
+<select id="edit-cat"></select>
+
+</div>
+
+<div class="form-row">
+
+<label>Autor</label>
+
+<input
+id="edit-author"
+maxlength="80"
+placeholder="Nombre y apellido"
+>
+
+<small>
+Podés conservar el autor original o corregirlo.
+</small>
+
+</div>
+
+<div class="form-row">
+
+<label>Descripción / Datos del lugar</label>
+
+<textarea
+id="edit-desc"
+maxlength="2000"
+></textarea>
+
+</div>
+
+<div class="form-row">
+
+<label>Fotos (máx. 3)</label>
+
+<div
+class="img-upload-zone"
+onclick="document.getElementById('edit-img').click()"
+>
+
+<i class="fas fa-camera"></i>
+
+<span>
+Hacé clic para agregar fotos
+</span>
+
+</div>
+
+<input
+type="file"
+id="edit-img"
+accept="image/*"
+multiple
+>
+
+<div
+class="img-preview-grid"
+id="img-preview-edit"
+></div>
+
+</div>
+
+<div class="form-row">
+
+<label>Video de YouTube (opcional)</label>
+
+<input
+id="edit-video"
+type="url"
+placeholder="https://www.youtube.com/watch?v=..."
+>
+
+</div>
+
+<div class="form-row">
+
+<label>Página web del lugar (opcional)</label>
+
+<input
+id="edit-web"
+type="url"
+placeholder="https://www.ejemplo.com"
+>
+
+<small>
+Podés agregar, modificar o eliminar el sitio web.
+</small>
+
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button
+class="btn btn-ghost"
+id="btn-delete-edit"
+style="margin-right:auto;color:var(--terra)"
+>
+<i class="fas fa-trash"></i>
+Eliminar
+</button>
+
+<button
+class="btn"
+id="btn-cancel-edit"
+>
+Cancelar
+</button>
+
+<button
+class="btn btn-primary"
+id="btn-save-edit"
+>
+<i class="fas fa-save"></i>
+Guardar cambios
+</button>
+
+</div>
+
+</div>
+</div>
+
 <div class="modal-overlay" id="modal-cat">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Agregar nuevo rubro</h3>
-      <p>Creá una nueva categoría para clasificar puntos</p>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>Nombre del rubro</label>
-        <input type="text" id="cat-name" placeholder="Ej: Hotelería, Industria, etc.">
-      </div>
-      <div class="form-row">
-        <label>Color identificador</label>
-        <input type="color" id="cat-color" value="#5b6fa8">
-      </div>
-      <div class="form-row">
-        <label>Ícono (clase FontAwesome)</label>
-        <input type="text" id="cat-icon" value="fa-star" placeholder="fa-star">
-        <small>Buscá íconos en fontawesome.com/icons (usá solo el nombre, ej: fa-hotel)</small>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" id="btn-cancel-cat">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-cat">Guardar rubro</button>
-    </div>
-  </div>
+
+<div class="modal">
+
+<div class="modal-header">
+
+<h3>Agregar nuevo rubro</h3>
+
+<p>
+Creá una nueva categoría para clasificar puntos.
+</p>
+
 </div>
 
-<!-- TOASTS -->
+<div class="modal-body">
+
+<div class="form-row">
+
+<label>Nombre del rubro</label>
+
+<input
+id="cat-name"
+placeholder="Ej: Hotelería, Industria, etc."
+>
+
+</div>
+
+<div class="form-row">
+
+<label>Color identificador</label>
+
+<input
+type="color"
+id="cat-color"
+value="#5b6fa8"
+>
+
+</div>
+
+<div class="form-row">
+
+<label>Ícono</label>
+
+<input
+id="cat-icon"
+value="fa-star"
+placeholder="fa-star"
+>
+
+<small>
+Usá solamente el nombre del ícono FontAwesome.
+</small>
+
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button
+class="btn"
+id="btn-cancel-cat"
+>
+Cancelar
+</button>
+
+<button
+class="btn btn-primary"
+id="btn-save-cat"
+>
+Guardar rubro
+</button>
+
+</div>
+
+</div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
-<!-- LEAFLET -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-(function() {
-  'use strict';
+(function(){
 
-  // ===== STATE =====
-  let map, markers = {};
-  let points = [];
-  let categories = {};
-  let activeCats = new Set();
-  let addMode = false;
-  let currentEditId = null;
-  let currentUser = localStorage.getItem('mapa_colab_user') || '';
-  let tempImagesAdd = [];
-  let tempImagesEdit = [];
+'use strict';
 
-  const CITY_CENTER = [-31.427, -62.083];
-  const CITY_ZOOM = 14;
-  const catsRef = db.ref('categories');
-  const pointsRef = db.ref('points');
-  const presenceRef = db.ref('presence');
+let map;
+let markers={};
+let points=[];
+let categories={};
+let activeCats=new Set();
+let addMode=false;
+let currentEditId=null;
+let currentUser=localStorage.getItem('mapa_colab_user')||'';
+let tempImagesAdd=[];
+let tempImagesEdit=[];
+let presenceKey=null;
 
-  // ===== AUTH & PRESENCE =====
-  auth.signInAnonymously().then(() => {
-    const userPres = presenceRef.push();
-    userPres.onDisconnect().remove();
-    userPres.set({ joinedAt: Date.now(), name: currentUser || 'Anónimo' });
-  }).catch(err => console.error('Auth error:', err));
+const CITY_CENTER=[-31.427,-62.083];
+const CITY_ZOOM=14;
 
-  // ===== WELCOME MODAL =====
-  function initWelcome() {
-    if (currentUser) {
-      document.getElementById('modal-welcome').classList.remove('show');
-      updateUserBadge();
-    } else {
-      document.getElementById('modal-welcome').classList.add('show');
-      setTimeout(() => document.getElementById('welcome-name').focus(), 300);
-    }
-  }
+const catsRef=db.ref('categories');
+const pointsRef=db.ref('points');
+const presenceRef=db.ref('presence');
 
-  window.saveWelcome = function() {
-    const name = document.getElementById('welcome-name').value.trim();
-    if (!name) { document.getElementById('welcome-name').focus(); return; }
-    currentUser = name;
-    localStorage.setItem('mapa_colab_user', currentUser);
-    document.getElementById('modal-welcome').classList.remove('show');
-    updateUserBadge();
-    showToast('¡Bienvenido, ' + currentUser + '!', 'success');
-    // Update presence
-    presenceRef.once('value', snap => {
-      snap.forEach(child => {
-        if (child.val().name === 'Anónimo' && auth.currentUser) {
-          // try to update our own presence entry if it was created before name
-        }
-      });
-    });
-  };
+const defaults={
+educacion:{label:'Educación',color:'#5b6fa8',icon:'fa-graduation-cap'},
+salud:{label:'Salud',color:'#b85c6e',icon:'fa-heart-pulse'},
+comercio:{label:'Comercio',color:'#c89f3d',icon:'fa-store'},
+esp_verde:{label:'Espacios Verdes',color:'#7a9e6b',icon:'fa-tree'},
+seguridad:{label:'Seguridad',color:'#c45d3e',icon:'fa-shield-halved'},
+cultura:{label:'Cultura',color:'#3a8a7f',icon:'fa-landmark'},
+deporte:{label:'Deporte',color:'#6b8e9e',icon:'fa-person-running'},
+gobierno:{label:'Gobierno',color:'#8b6fb5',icon:'fa-building'},
+servicios:{label:'Servicios Públicos',color:'#9b8e7e',icon:'fa-building-columns'},
+transporte:{label:'Transporte',color:'#a05d48',icon:'fa-bus'},
+gastronomia:{label:'Gastronomía',color:'#8b6fb5',icon:'fa-utensils'},
+religion:{label:'Religión',color:'#6b8e9e',icon:'fa-church'}
+};
 
-  window.changeUser = function() {
-    const newName = prompt('Cambiar nombre y apellido:', currentUser);
-    if (newName && newName.trim()) {
-      currentUser = newName.trim();
-      localStorage.setItem('mapa_colab_user', currentUser);
-      updateUserBadge();
-      showToast('Nombre actualizado', 'success');
-    }
-  };
+function $(id){
+return document.getElementById(id);
+}
 
-  function updateUserBadge() {
-    const badge = document.getElementById('user-badge');
-    const nameEl = document.getElementById('user-name');
-    const avatar = document.getElementById('user-avatar');
-    if (currentUser) {
-      badge.style.display = 'inline-flex';
-      nameEl.textContent = currentUser;
-      avatar.textContent = getInitials(currentUser);
-    }
-  }
+function esc(text){
+if(text===undefined||text===null)return '';
+const div=document.createElement('div');
+div.textContent=String(text);
+return div.innerHTML;
+}
 
-  function getInitials(name) {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  }
+function initials(name){
+return String(name||'')
+.split(/\s+/)
+.filter(Boolean)
+.map(n=>n[0])
+.join('')
+.toUpperCase()
+.slice(0,2);
+}
 
-  // ===== CONNECTION =====
-  const connBadge = document.getElementById('conn-badge');
-  const connText = document.getElementById('conn-text');
-  db.ref('.info/connected').on('value', snap => {
-    if (snap.val() === true) {
-      connBadge.classList.remove('offline'); connBadge.classList.add('online');
-      connBadge.innerHTML = '<i class="fas fa-circle"></i><span>En línea</span>';
-    } else {
-      connBadge.classList.remove('online'); connBadge.classList.add('offline');
-      connBadge.innerHTML = '<i class="fas fa-circle"></i><span>Sin conexión</span>';
-    }
-  });
+function toast(message,type='success'){
+const container=$('toast-container');
+const el=document.createElement('div');
+el.className='toast '+type;
+el.innerHTML='<i class="fas fa-'+
+(type==='success'?'check-circle':'exclamation-circle')+
+'"></i>'+esc(message);
+container.appendChild(el);
+setTimeout(()=>el.remove(),3200);
+}
 
-  function setSyncing(yes) {
-    const ind = document.getElementById('sync-ind');
-    const txt = document.getElementById('sync-text');
-    if (yes) { ind.classList.add('syncing'); ind.innerHTML = '<i class="fas fa-circle-notch"></i><span>Sincronizando...</span>'; }
-    else { ind.classList.remove('syncing'); ind.innerHTML = '<i class="fas fa-check"></i><span>Sincronizado</span>'; }
-  }
+function syncing(value){
+const el=$('sync-ind');
+if(value){
+el.classList.add('syncing');
+el.innerHTML='<i class="fas fa-circle-notch"></i><span>Sincronizando...</span>';
+}else{
+el.classList.remove('syncing');
+el.innerHTML='<i class="fas fa-check"></i><span>Sincronizado</span>';
+}
+}
 
-  function showToast(msg, type) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.innerHTML = '<i class="fas fa-' + (type==='success'?'check-circle':'exclamation-circle') + '"></i>' + msg;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3200);
-  }
+auth.signInAnonymously()
+.then(()=>{
+presenceKey=presenceRef.push().key;
 
-  // ===== FIREBASE DATA =====
-  function initData() {
-    // Categories
-    catsRef.on('value', snap => {
-      const data = snap.val();
-      if (data) {
-        categories = data;
-      } else {
-        categories = {
-          educacion:    { label: 'Educación', color: '#5b6fa8', icon: 'fa-graduation-cap' },
-          salud:        { label: 'Salud', color: '#b85c6e', icon: 'fa-heart-pulse' },
-          comercio:     { label: 'Comercio', color: '#c89f3d', icon: 'fa-store' },
-          esp_verde:    { label: 'Espacios Verdes', color: '#7a9e6b', icon: 'fa-tree' },
-          seguridad:    { label: 'Seguridad', color: '#c45d3e', icon: 'fa-shield-halved' },
-          cultura:      { label: 'Cultura', color: '#3a8a7f', icon: 'fa-landmark' },
-          deporte:      { label: 'Deporte', color: '#6b8e9e', icon: 'fa-person-running' },
-          gobierno:     { label: 'Gobierno', color: '#8b6fb5', icon: 'fa-building' },
-          servicios:    { label: 'Servicios Públicos', color: '#9b8e7e', icon: 'fa-building-columns' },
-          transporte:   { label: 'Transporte', color: '#a05d48', icon: 'fa-bus' },
-          gastronomia:  { label: 'Gastronomía', color: '#8b6fb5', icon: 'fa-utensils' },
-          religion:     { label: 'Religión', color: '#6b8e9e', icon: 'fa-church' }
-        };
-        catsRef.set(categories);
-      }
-      if (activeCats.size === 0) activeCats = new Set(Object.keys(categories));
-      renderFilters();
-      renderSelects();
-      renderMarkers();
-      updateStats();
-      renderStudents();
-    });
+const ref=presenceRef.child(presenceKey);
 
-    // Points
-    pointsRef.on('value', snap => {
-      const data = snap.val();
-      points = data ? Object.entries(data).map(([key, val]) => ({ ...val, firebaseKey: key })) : [];
-      renderMarkers();
-      renderList();
-      updateStats();
-      renderStudents();
-      setSyncing(false);
-    });
+ref.onDisconnect().remove();
 
-    // Online count
-    presenceRef.on('value', snap => {
-      document.getElementById('stat-online').textContent = snap.numChildren();
-    });
+ref.set({
+joinedAt:firebase.database.ServerValue.TIMESTAMP,
+name:currentUser||'Anónimo'
+});
+})
+.catch(err=>{
+console.error('Auth error:',err);
+toast('No se pudo conectar con Firebase','error');
+});
 
-    pointsRef.on('child_added', () => setSyncing(false));
-    pointsRef.on('child_changed', () => setSyncing(false));
-    pointsRef.on('child_removed', () => setSyncing(false));
-  }
+function updatePresenceName(){
+if(!presenceKey)return;
 
-  // ===== STUDENTS SIDEBAR =====
-  function renderStudents() {
-    const container = document.getElementById('student-list');
-    const authors = {};
-    points.forEach(p => {
-      if (p.author) {
-        authors[p.author] = (authors[p.author] || 0) + 1;
-      }
-    });
-    const names = Object.keys(authors).sort((a,b) => authors[b] - authors[a]);
-    if (names.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="padding:16px;"><i class="fas fa-user-group"></i>Todavía no hay aportes identificados.<br>Los estudiantes deben ingresar su nombre al entrar.</div>';
-      return;
-    }
-    container.innerHTML = '<h4>' + names.length + ' estudiante' + (names.length>1?'s':'') + ' · ' + points.length + ' punto' + (points.length>1?'s':'') + '</h4>' +
-      names.map(n => '<span class="student-tag"><span class="s-avatar">' + getInitials(n) + '</span>' + escapeHtml(n) + ' (' + authors[n] + ')</span>').join('');
-  }
+presenceRef.child(presenceKey).update({
+name:currentUser||'Anónimo'
+});
+}
 
-  // ===== MAP =====
-  function initMap() {
-    map = L.map('map', { scrollWheelZoom: true }).setView(CITY_CENTER, CITY_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
-    }).addTo(map);
-    map.on('click', function(e) {
-      if (!addMode) return;
-      openPointModal(e.latlng.lat, e.latlng.lng);
-    });
-  }
+function initPresence(){
+db.ref('.info/connected').on('value',snap=>{
 
-  function createIcon(cat) {
-    const c = categories[cat] ? categories[cat].color : '#888';
-    const icon = categories[cat] ? categories[cat].icon : 'fa-map-pin';
-    return L.divIcon({
-      className: '',
-      html: '<div class="custom-marker" style="background:'+c+';"><i class="fas '+icon+'"></i></div>',
-      iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34]
-    });
-  }
+const badge=$('conn-badge');
 
-  function renderMarkers() {
-    Object.values(markers).forEach(m => map.removeLayer(m));
-    markers = {};
-    points.forEach(p => {
-      if (!activeCats.has(p.cat)) return;
-      const marker = L.marker([p.lat, p.lng], { icon: createIcon(p.cat) }).addTo(map);
-      const catLabel = categories[p.cat] ? categories[p.cat].label : p.cat;
-      let popupHtml = '<b>' + escapeHtml(p.name) + '</b><br>' +
-        '<span style="color:' + (categories[p.cat]?.color||'#888') + ';font-weight:600;font-size:0.78rem;">' + catLabel + '</span>';
+if(snap.val()===true){
 
-      if (p.author) {
-        popupHtml += '<div class="popup-author"><i class="fas fa-user" style="margin-right:4px;font-size:0.65rem;"></i>Aporte de ' + escapeHtml(p.author) + '</div>';
-      }
+badge.classList.remove('offline');
+badge.classList.add('online');
 
-      if (p.desc) {
-        const shortDesc = p.desc.length > 180 ? p.desc.substring(0,180) + '...' : p.desc;
-        popupHtml += '<div style="margin-top:6px;color:#6b6560;font-size:0.8rem;line-height:1.4;">' + escapeHtml(shortDesc).replace(/\n/g,'<br>') + '</div>';
-      }
+$('conn-text').textContent='En línea';
 
-      // Images in popup
-      if (p.images && p.images.length > 0) {
-        popupHtml += '<div class="popup-media">';
-        p.images.forEach(img => {
-          popupHtml += '<img src="' + img + '" alt="Foto">';
-        });
-        popupHtml += '</div>';
-      }
+if(presenceKey){
+presenceRef.child(presenceKey).update({
+name:currentUser||'Anónimo'
+});
+}
 
-      // Video in popup
-      if (p.video) {
-        const vidId = extractYouTubeId(p.video);
-        if (vidId) {
-          popupHtml += '<div class="popup-media"><div class="vid-wrap"><iframe src="https://www.youtube.com/embed/' + vidId + '" allowfullscreen></iframe></div></div>';
-        }
-      }
+}else{
 
-      marker.bindPopup(popupHtml);
-      marker.on('click', () => highlightPoint(p.firebaseKey));
-      markers[p.firebaseKey] = marker;
-    });
-  }
+badge.classList.remove('online');
+badge.classList.add('offline');
 
-  function extractYouTubeId(url) {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }
+$('conn-text').textContent='Sin conexión';
 
-  // ===== LIST =====
-  function renderList() {
-    const container = document.getElementById('points-list');
-    const visible = points.filter(p => activeCats.has(p.cat));
-    if (visible.length === 0) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-map-pin"></i>No hay puntos visibles.<br>Activá algún filtro o agregá el primero.</div>';
-      return;
-    }
-    container.innerHTML = visible.map(p => {
-      const c = categories[p.cat] || { color: '#888', label: p.cat, icon: 'fa-map-pin' };
-      const hasMedia = (p.images && p.images.length > 0) || p.video;
-      return '<div class="point-item" data-key="' + p.firebaseKey + '" onclick="window.focusPoint(\'' + p.firebaseKey + '\')">' +
-        '<div class="p-icon" style="background:' + c.color + ';"><i class="fas ' + c.icon + '"></i></div>' +
-        '<div class="p-info">' +
-          '<div class="p-name">' + escapeHtml(p.name) + '</div>' +
-          '<div class="p-cat">' + c.label + '</div>' +
-          (p.author ? '<div class="p-author"><i class="fas fa-user" style="margin-right:3px;font-size:0.6rem;"></i>' + escapeHtml(p.author) + '</div>' : '') +
-          (hasMedia ? '<div class="p-meta"><i class="fas fa-image"></i>' + (p.images?p.images.length:0) + (p.video?' <i class="fas fa-video" style="margin-left:4px;"></i>':'') + '</div>' : '') +
-        '</div>' +
-        '<div class="p-actions">' +
-          '<i class="fas fa-pen" onclick="event.stopPropagation(); window.editPoint(\'' + p.firebaseKey + '\')"></i>' +
-          '<i class="fas fa-trash" onclick="event.stopPropagation(); window.deletePoint(\'' + p.firebaseKey + '\')"></i>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-  }
+}
 
-  // ===== FILTERS =====
-  function renderFilters() {
-    const container = document.getElementById('filter-chips');
-    container.innerHTML = Object.entries(categories).map(([key, val]) => {
-      const count = points.filter(p => p.cat === key).length;
-      const active = activeCats.has(key);
-      return '<span class="filter-chip ' + (active?'active':'') + '" data-cat="' + key + '" onclick="window.toggleCat(\'' + key + '\')" style="' + (active?'background:'+val.color+';color:#fff;border-color:transparent;':'') + '">' +
-        '<span class="dot" style="background:' + val.color + ';"></span>' + val.label + '<span class="count">(' + count + ')</span>' +
-      '</span>';
-    }).join('');
-  }
+});
+}
 
-  window.toggleCat = function(key) {
-    if (activeCats.has(key)) { if (activeCats.size === 1) return; activeCats.delete(key); }
-    else { activeCats.add(key); }
-    renderFilters();
-    renderMarkers();
-    renderList();
-  };
+function initWelcome(){
 
-  // ===== INTERACTION =====
-  window.focusPoint = function(key) {
-    const p = points.find(x => x.firebaseKey === key);
-    if (!p || !markers[key]) return;
-    map.setView([p.lat, p.lng], 16);
-    markers[key].openPopup();
-    highlightPoint(key);
-  };
+if(currentUser){
 
-  function highlightPoint(key) {
-    document.querySelectorAll('.point-item').forEach(el => el.style.background = '');
-    const el = document.querySelector('.point-item[data-key="' + key + '"]');
-    if (el) { el.style.background = '#f0ece5'; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  }
+$('modal-welcome').classList.remove('show');
 
-  window.deletePoint = function(key) {
-    if (!confirm('¿Eliminar este punto?')) return;
-    setSyncing(true);
-    pointsRef.child(key).remove()
-      .then(() => showToast('Punto eliminado', 'success'))
-      .catch(err => { setSyncing(false); showToast('Error al eliminar: ' + err.message, 'error'); });
-  };
+updateUserBadge();
 
-  window.editPoint = function(key) {
-    const p = points.find(x => x.firebaseKey === key);
-    if (!p) return;
-    currentEditId = key;
-    document.getElementById('edit-name').value = p.name;
-    document.getElementById('edit-desc').value = p.desc || '';
-    document.getElementById('edit-author').value = p.author || '';
-    document.getElementById('edit-video').value = p.video || '';
-    renderEditSelect(p.cat);
-    // Load existing images
-    tempImagesEdit = p.images ? [...p.images] : [];
-    renderImagePreview('edit');
-    document.getElementById('modal-edit').classList.add('show');
-  };
+}else{
 
-  // ===== IMAGE HANDLING =====
-  window.handleImageUpload = function(input, mode) {
-    const files = Array.from(input.files);
-    const current = mode === 'add' ? tempImagesAdd : tempImagesEdit;
-    const max = 3 - current.length;
-    if (max <= 0) { showToast('Máximo 3 fotos por punto', 'error'); input.value = ''; return; }
+$('modal-welcome').classList.add('show');
 
-    const toProcess = files.slice(0, max);
-    let processed = 0;
+setTimeout(()=>{
+$('welcome-name').focus();
+},300);
 
-    toProcess.forEach(file => {
-      if (!file.type.startsWith('image/')) return;
-      resizeImage(file, 800, 0.7, (base64) => {
-        current.push(base64);
-        renderImagePreview(mode);
-        processed++;
-        if (processed === toProcess.length) {
-          showToast('Fotos listas (' + current.length + '/3)', 'success');
-        }
-      });
-    });
-    input.value = '';
-  };
+}
 
-  function resizeImage(file, maxWidth, quality, callback) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        callback(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
+}
 
-  function renderImagePreview(mode) {
-    const container = document.getElementById('img-preview-' + mode);
-    const images = mode === 'add' ? tempImagesAdd : tempImagesEdit;
-    if (images.length === 0) { container.innerHTML = ''; return; }
-    container.innerHTML = images.map((src, idx) =>
-      '<div class="img-preview"><img src="' + src + '"><button type="button" class="remove-img" onclick="window.removeImage(' + idx + ',\'' + mode + '\')"><i class="fas fa-times"></i></button></div>'
-    ).join('');
-  }
+$('btn-welcome').onclick=function(){
 
-  window.removeImage = function(idx, mode) {
-    if (mode === 'add') tempImagesAdd.splice(idx, 1);
-    else tempImagesEdit.splice(idx, 1);
-    renderImagePreview(mode);
-  };
+const name=$('welcome-name').value.trim();
 
-  // ===== ADD POINT MODAL =====
-  function openPointModal(lat, lng) {
-    if (!currentUser) {
-      showToast('Primero ingresá tu nombre haciendo clic en tu nombre arriba a la izquierda', 'error');
-      return;
-    }
-    document.getElementById('inp-name').value = '';
-    document.getElementById('inp-desc').value = '';
-    document.getElementById('inp-video').value = '';
-    document.getElementById('inp-coords').value = lat.toFixed(6) + ', ' + lng.toFixed(6);
-    document.getElementById('modal-point').dataset.lat = lat;
-    document.getElementById('modal-point').dataset.lng = lng;
-    document.getElementById('add-author-display').textContent = currentUser;
-    tempImagesAdd = [];
-    renderImagePreview('add');
-    document.getElementById('modal-point').classList.add('show');
-    document.getElementById('inp-name').focus();
-  }
+if(!name){
+$('welcome-name').focus();
+return;
+}
 
-  function renderSelects() {
-    const opts = Object.entries(categories).map(([k,v]) => '<option value="' + k + '">' + v.label + '</option>').join('');
-    document.getElementById('inp-cat').innerHTML = opts;
-  }
+currentUser=name;
 
-  function renderEditSelect(selected) {
-    const opts = Object.entries(categories).map(([k,v]) => '<option value="' + k + '" ' + (k===selected?'selected':'') + '>' + v.label + '</option>').join('');
-    document.getElementById('edit-cat').innerHTML = opts;
-  }
+localStorage.setItem('mapa_colab_user',currentUser);
 
-  document.getElementById('btn-cancel-point').addEventListener('click', () => {
-    document.getElementById('modal-point').classList.remove('show');
-    tempImagesAdd = [];
-  });
-  document.getElementById('modal-point').addEventListener('click', e => { if (e.target === document.getElementById('modal-point')) { document.getElementById('modal-point').classList.remove('show'); tempImagesAdd = []; } });
+$('modal-welcome').classList.remove('show');
 
-  document.getElementById('btn-save-point').addEventListener('click', () => {
-    const name = document.getElementById('inp-name').value.trim();
-    if (!name) { document.getElementById('inp-name').focus(); return; }
-    const videoUrl = document.getElementById('inp-video').value.trim();
-    const webUrl = document.getElementById('inp-web').value.trim();
-    const p = {
-      name: name,
-      cat: document.getElementById('inp-cat').value,
-      lat: parseFloat(document.getElementById('modal-point').dataset.lat),
-      lng: parseFloat(document.getElementById('modal-point').dataset.lng),
-      desc: document.getElementById('inp-desc').value.trim(),
-      author: currentUser || 'Anónimo',
-      images: tempImagesAdd.length > 0 ? tempImagesAdd : null,
-      video: videoUrl || null,
-      web: webUrl || null,
-      createdAt: Date.now()
-    };
-    // Clean nulls
-    if (!p.images) delete p.images;
-    if (!p.video) delete p.video;
-    if (!p.web) delete p.web;
-    setSyncing(true);
-    pointsRef.push(p)
-      .then(() => {
-        document.getElementById('modal-point').classList.remove('show');
-        tempImagesAdd = [];
-        showToast('Punto agregado correctamente', 'success');
-        addMode = false;
-        document.getElementById('btn-add-mode').innerHTML = '<i class="fas fa-plus" style="margin-right:5px;"></i>Agregar punto';
-        document.getElementById('add-mode-badge').style.display = 'none';
-        document.body.style.cursor = '';
-      })
-      .catch(err => { setSyncing(false); showToast('Error al guardar: ' + err.message, 'error'); });
-  });
+updateUserBadge();
 
-  // ===== EDIT POINT MODAL =====
-  document.getElementById('btn-cancel-edit').addEventListener('click', () => {
-    document.getElementById('modal-edit').classList.remove('show');
-    tempImagesEdit = [];
-  });
-  document.getElementById('modal-edit').addEventListener('click', e => { if (e.target === document.getElementById('modal-edit')) { document.getElementById('modal-edit').classList.remove('show'); tempImagesEdit = []; } });
+updatePresenceName();
 
-  document.getElementById('btn-save-edit').addEventListener('click', () => {
-    if (!currentEditId) return;
-    const videoUrl = document.getElementById('edit-video').value.trim();
-    const updates = {
-      name: document.getElementById('edit-name').value.trim(),
-      cat: document.getElementById('edit-cat').value,
-      desc: document.getElementById('edit-desc').value.trim(),
-      author: document.getElementById('edit-author').value.trim() || null,
-      images: tempImagesEdit.length > 0 ? tempImagesEdit : null,
-      video: videoUrl || null,
-      updatedAt: Date.now(),
-      updatedBy: currentUser || null
-    };
-    if (!updates.author) delete updates.author;
-    if (!updates.images) delete updates.images;
-    if (!updates.video) delete updates.video;
-    if (!updates.updatedBy) delete updates.updatedBy;
-    setSyncing(true);
-    pointsRef.child(currentEditId).update(updates)
-      .then(() => { document.getElementById('modal-edit').classList.remove('show'); tempImagesEdit = []; showToast('Punto actualizado', 'success'); })
-      .catch(err => { setSyncing(false); showToast('Error al actualizar: ' + err.message, 'error'); });
-  });
+toast('¡Bienvenido, '+currentUser+'!');
 
-  document.getElementById('btn-delete-edit').addEventListener('click', () => {
-    if (!currentEditId) return;
-    if (!confirm('¿Eliminar este punto permanentemente?')) return;
-    setSyncing(true);
-    pointsRef.child(currentEditId).remove()
-      .then(() => { document.getElementById('modal-edit').classList.remove('show'); tempImagesEdit = []; showToast('Punto eliminado', 'success'); })
-      .catch(err => { setSyncing(false); showToast('Error al eliminar: ' + err.message, 'error'); });
-  });
+};
 
-  // ===== ADD CATEGORY MODAL =====
-  document.getElementById('btn-add-cat').addEventListener('click', () => {
-    document.getElementById('cat-name').value = '';
-    document.getElementById('cat-color').value = '#5b6fa8';
-    document.getElementById('cat-icon').value = 'fa-star';
-    document.getElementById('modal-cat').classList.add('show');
-    document.getElementById('cat-name').focus();
-  });
-  document.getElementById('btn-cancel-cat').addEventListener('click', () => document.getElementById('modal-cat').classList.remove('show'));
-  document.getElementById('modal-cat').addEventListener('click', e => { if (e.target === document.getElementById('modal-cat')) document.getElementById('modal-cat').classList.remove('show'); });
+$('welcome-name').addEventListener('keydown',e=>{
+if(e.key==='Enter'){
+$('btn-welcome').click();
+}
+});
 
-  document.getElementById('btn-save-cat').addEventListener('click', () => {
-    const name = document.getElementById('cat-name').value.trim();
-    if (!name) { document.getElementById('cat-name').focus(); return; }
-    const key = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '_');
-    const newCat = {
-      label: name,
-      color: document.getElementById('cat-color').value,
-      icon: document.getElementById('cat-icon').value || 'fa-star'
-    };
-    setSyncing(true);
-    catsRef.child(key).set(newCat)
-      .then(() => {
-        document.getElementById('modal-cat').classList.remove('show');
-        activeCats.add(key);
-        showToast('Rubro "' + name + '" creado', 'success');
-      })
-      .catch(err => { setSyncing(false); showToast('Error: ' + err.message, 'error'); });
-  });
+window.changeUser=function(){
 
-  // ===== ADD MODE TOGGLE =====
-  const btnAdd = document.getElementById('btn-add-mode');
-  const badge = document.getElementById('add-mode-badge');
-  btnAdd.addEventListener('click', () => {
-    if (!currentUser) {
-      showToast('Primero ingresá tu nombre haciendo clic en "Entrar al mapa"', 'error');
-      document.getElementById('modal-welcome').classList.add('show');
-      return;
-    }
-    addMode = !addMode;
-    btnAdd.classList.toggle('btn-accent', addMode);
-    btnAdd.innerHTML = addMode ? '<i class="fas fa-times" style="margin-right:5px;"></i>Cancelar' : '<i class="fas fa-plus" style="margin-right:5px;"></i>Agregar punto';
-    badge.style.display = addMode ? 'inline-block' : 'none';
-    document.body.style.cursor = addMode ? 'crosshair' : '';
-  });
+const name=prompt(
+'Cambiar nombre y apellido:',
+currentUser
+);
 
-  // ===== EXPORT =====
-  document.getElementById('btn-export').addEventListener('click', () => {
-    const data = { categories, points };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'mapa-san-francisco-backup.json'; a.click();
-    URL.revokeObjectURL(url);
-    showToast('Datos exportados', 'success');
-  });
+if(name&&name.trim()){
 
-  // ===== STATS =====
-  function updateStats() {
-    document.getElementById('stat-total').textContent = points.length;
-    document.getElementById('stat-cats').textContent = Object.keys(categories).length;
-  }
+currentUser=name.trim();
 
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
-  }
+localStorage.setItem(
+'mapa_colab_user',
+currentUser
+);
 
-  // ===== BOOT =====
-  initMap();
-  initWelcome();
-  initData();
+updateUserBadge();
+
+updatePresenceName();
+
+toast('Nombre actualizado');
+
+}
+
+};
+
+function updateUserBadge(){
+
+if(!currentUser)return;
+
+$('user-badge').style.display='inline-flex';
+$('user-name').textContent=currentUser;
+$('user-avatar').textContent=initials(currentUser);
+
+}
+
+function initMap(){
+
+map=L.map('map',{
+scrollWheelZoom:true
+}).setView(CITY_CENTER,CITY_ZOOM);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+attribution:'&copy; OpenStreetMap contributors',
+maxZoom:19
+}
+).addTo(map);
+
+map.on('click',e=>{
+
+if(!addMode)return;
+
+openAdd(e.latlng.lat,e.latlng.lng);
+
+});
+
+}
+
+function createIcon(cat){
+
+const c=categories[cat]||{
+color:'#888',
+icon:'fa-map-pin'
+};
+
+return L.divIcon({
+
+className:'',
+
+html:
+'<div class="custom-marker" style="background:'+
+c.color+
+'"><i class="fas '+
+esc(c.icon)+
+'"></i></div>',
+
+iconSize:[32,32],
+iconAnchor:[16,32],
+popupAnchor:[0,-34]
+
+});
+
+}
+
+function extractYouTubeId(url){
+
+if(!url)return null;
+
+const patterns=[
+/youtu\.be\/([^?&/]+)/i,
+/youtube\.com\/watch\?v=([^?&]+)/i,
+/youtube\.com\/embed\/([^?&/]+)/i,
+/youtube\.com\/shorts\/([^?&/]+)/i
+];
+
+for(const pattern of patterns){
+
+const match=String(url).match(pattern);
+
+if(match)return match[1];
+
+}
+
+return null;
+}
+
+function renderMarkers(){
+
+Object.values(markers).forEach(marker=>{
+map.removeLayer(marker);
+});
+
+markers={};
+
+points.forEach(p=>{
+
+if(!activeCats.has(p.cat))return;
+
+if(
+typeof p.lat!=='number'||
+typeof p.lng!=='number'
+)return;
+
+const marker=L.marker(
+[p.lat,p.lng],
+{icon:createIcon(p.cat)}
+).addTo(map);
+
+const cat=categories[p.cat]||{
+label:p.cat||'Sin rubro',
+color:'#888'
+};
+
+let html=
+'<b>'+esc(p.name)+'</b><br>'+
+'<span style="color:'+cat.color+';font-weight:600">'+
+esc(cat.label)+
+'</span>';
+
+if(p.author){
+
+html+=
+'<div style="font-size:.72rem;color:var(--ochre);margin-top:4px">'+
+'<i class="fas fa-user"></i> Aporte de '+
+esc(p.author)+
+'</div>';
+
+}
+
+if(p.desc){
+
+const desc=
+String(p.desc).length>180?
+String(p.desc).substring(0,180)+'...':
+String(p.desc);
+
+html+=
+'<div style="margin-top:6px;color:#6b6560;font-size:.8rem;line-height:1.4">'+
+esc(desc).replace(/\n/g,'<br>')+
+'</div>';
+
+}
+
+if(Array.isArray(p.images)&&p.images.length){
+
+html+='<div class="popup-media">';
+
+p.images.forEach(image=>{
+
+html+=
+'<img src="'+esc(image)+'" alt="Foto del lugar">';
+
+});
+
+html+='</div>';
+
+}
+
+if(p.video){
+
+const id=extractYouTubeId(p.video);
+
+if(id){
+
+html+=
+'<div class="popup-media">'+
+'<div class="vid-wrap">'+
+'<iframe src="https://www.youtube.com/embed/'+
+encodeURIComponent(id)+
+'" allowfullscreen></iframe>'+
+'</div></div>';
+
+}else{
+
+html+=
+'<div style="margin-top:8px">'+
+'<a class="popup-link" href="'+
+esc(p.video)+
+'" target="_blank" rel="noopener noreferrer">'+
+'<i class="fas fa-video"></i> Ver video</a>'+
+'</div>';
+
+}
+
+}
+
+if(p.web){
+
+let web=String(p.web).trim();
+
+if(web&&!/^https?:\/\//i.test(web)){
+web='https://'+web;
+}
+
+if(web){
+
+html+=
+'<div>'+
+'<a class="popup-link" href="'+
+esc(web)+
+'" target="_blank" rel="noopener noreferrer">'+
+'<i class="fas fa-globe"></i> Visitar página web</a>'+
+'</div>';
+
+}
+
+}
+
+marker.bindPopup(html);
+
+marker.on('click',()=>{
+highlightPoint(p.firebaseKey);
+});
+
+markers[p.firebaseKey]=marker;
+
+});
+
+}
+
+function renderList(){
+
+const visible=points.filter(
+p=>activeCats.has(p.cat)
+);
+
+if(!visible.length){
+
+$('points-list').innerHTML=
+'<div class="empty-state">'+
+'<i class="fas fa-map-pin"></i>'+
+'No hay puntos visibles.<br>'+
+'Activá algún filtro o agregá el primero.'+
+'</div>';
+
+return;
+
+}
+
+$('points-list').innerHTML=visible.map(p=>{
+
+const cat=categories[p.cat]||{
+color:'#888',
+label:p.cat||'Sin rubro',
+icon:'fa-map-pin'
+};
+
+const media=
+(Array.isArray(p.images)&&p.images.length)||
+p.video||
+p.web;
+
+return '<div class="point-item" data-key="'+
+esc(p.firebaseKey)+
+'" onclick="focusPoint(\''+
+String(p.firebaseKey).replace(/'/g,"\\'")+
+'\')">'+
+
+'<div class="p-icon" style="background:'+
+cat.color+
+'">'+
+'<i class="fas '+esc(cat.icon)+'"></i>'+
+'</div>'+
+
+'<div class="p-info">'+
+
+'<div class="p-name">'+
+esc(p.name)+
+'</div>'+
+
+'<div class="p-cat">'+
+esc(cat.label)+
+'</div>'+
+
+(p.author?
+'<div class="p-author">'+
+'<i class="fas fa-user"></i> '+
+esc(p.author)+
+'</div>':'')+
+
+(media?
+'<div class="p-meta">'+
+(Array.isArray(p.images)&&p.images.length?
+'<i class="fas fa-image"></i> '+p.images.length:'')+
+(p.video?
+' <i class="fas fa-video"></i>':'')+
+(p.web?
+' <i class="fas fa-globe"></i>':'')+
+'</div>':'')+
+
+'</div>'+
+
+'<div class="p-actions">'+
+
+'<i class="fas fa-pen" title="Editar" onclick="event.stopPropagation();editPoint(\''+
+String(p.firebaseKey).replace(/'/g,"\\'")+
+'\')"></i>'+
+
+'<i class="fas fa-trash" title="Eliminar" onclick="event.stopPropagation();deletePoint(\''+
+String(p.firebaseKey).replace(/'/g,"\\'")+
+'\')"></i>'+
+
+'</div>'+
+
+'</div>';
+
+}).join('');
+
+}
+
+function renderFilters(){
+
+$('filter-chips').innerHTML=
+Object.entries(categories).map(([key,cat])=>{
+
+const active=activeCats.has(key);
+
+const count=points.filter(
+p=>p.cat===key
+).length;
+
+return '<span class="filter-chip '+
+(active?'active':'')+
+'" onclick="toggleCat(\''+
+key.replace(/'/g,"\\'")+
+'\')" style="'+
+(active?
+'background:'+cat.color+';':
+'')+
+'">'+
+
+'<span class="dot" style="background:'+
+cat.color+
+'"></span>'+
+
+esc(cat.label)+
+
+'<span class="count">('+
+count+
+')</span>'+
+
+'</span>';
+
+}).join('');
+
+}
+
+window.toggleCat=function(key){
+
+if(activeCats.has(key)){
+
+if(activeCats.size===1)return;
+
+activeCats.delete(key);
+
+}else{
+
+activeCats.add(key);
+
+}
+
+renderFilters();
+renderMarkers();
+renderList();
+
+};
+
+function renderSelects(){
+
+const options=
+Object.entries(categories)
+.map(([key,cat])=>
+'<option value="'+
+esc(key)+
+'">'+
+esc(cat.label)+
+'</option>'
+)
+.join('');
+
+$('inp-cat').innerHTML=options;
+$('edit-cat').innerHTML=options;
+
+}
+
+function renderStudents(){
+
+const authors={};
+
+points.forEach(p=>{
+
+if(p.author){
+
+authors[p.author]=
+(authors[p.author]||0)+1;
+
+}
+
+});
+
+const names=Object.keys(authors)
+.sort((a,b)=>authors[b]-authors[a]);
+
+if(!names.length){
+
+$('student-list').innerHTML=
+'<div class="empty-state" style="padding:16px">'+
+'<i class="fas fa-user-group"></i>'+
+'Todavía no hay aportes identificados.'+
+'</div>';
+
+return;
+
+}
+
+$('student-list').innerHTML=
+'<h4>'+
+names.length+
+' estudiante'+
+(names.length!==1?'s':'')+
+' · '+
+points.length+
+' punto'+
+(points.length!==1?'s':'')+
+'</h4>'+
+
+names.map(name=>
+'<span class="student-tag">'+
+'<span class="s-avatar">'+
+initials(name)+
+'</span>'+
+esc(name)+
+' ('+
+authors[name]+
+')</span>'
+).join('');
+
+}
+
+function stats(){
+
+$('stat-total').textContent=points.length;
+$('stat-cats').textContent=Object.keys(categories).length;
+
+}
+
+function initData(){
+
+catsRef.on('value',snap=>{
+
+categories=snap.val()||defaults;
+
+if(!snap.val()){
+
+catsRef.set(defaults).catch(
+err=>console.error(err)
+);
+
+}
+
+if(activeCats.size===0){
+
+activeCats=new Set(
+Object.keys(categories)
+);
+
+}
+
+renderFilters();
+renderSelects();
+renderMarkers();
+renderList();
+stats();
+renderStudents();
+
+});
+
+pointsRef.on('value',snap=>{
+
+const data=snap.val();
+
+points=data?
+Object.entries(data).map(
+([key,value])=>({
+...value,
+firebaseKey:key
+})
+):
+[];
+
+renderFilters();
+renderMarkers();
+renderList();
+stats();
+renderStudents();
+syncing(false);
+
+});
+
+presenceRef.on('value',snap=>{
+
+$('stat-online').textContent=
+snap.numChildren();
+
+});
+
+}
+
+function highlightPoint(key){
+
+document.querySelectorAll(
+'.point-item'
+).forEach(el=>{
+el.style.background='';
+});
+
+const el=document.querySelector(
+'.point-item[data-key="'+
+CSS.escape(key)+
+'"]'
+);
+
+if(el){
+
+el.style.background='#f0ece5';
+
+el.scrollIntoView({
+behavior:'smooth',
+block:'center'
+});
+
+}
+
+}
+
+window.focusPoint=function(key){
+
+const point=points.find(
+p=>p.firebaseKey===key
+);
+
+if(!point||!markers[key])return;
+
+map.setView(
+[point.lat,point.lng],
+16
+);
+
+markers[key].openPopup();
+
+highlightPoint(key);
+
+};
+
+function resizeImage(file,callback){
+
+const reader=new FileReader();
+
+reader.onload=e=>{
+
+const image=new Image();
+
+image.onload=()=>{
+
+let width=image.width;
+let height=image.height;
+
+if(width>900){
+
+height*=900/width;
+width=900;
+
+}
+
+const canvas=document.createElement('canvas');
+
+canvas.width=Math.round(width);
+canvas.height=Math.round(height);
+
+canvas
+.getContext('2d')
+.drawImage(
+image,
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+callback(
+canvas.toDataURL(
+'image/jpeg',
+.72
+)
+);
+
+};
+
+image.onerror=()=>{
+toast(
+'No se pudo procesar una imagen',
+'error'
+);
+};
+
+image.src=e.target.result;
+
+};
+
+reader.onerror=()=>{
+toast(
+'No se pudo leer una imagen',
+'error'
+);
+};
+
+reader.readAsDataURL(file);
+
+}
+
+function renderImages(mode){
+
+const array=
+mode==='add'?
+tempImagesAdd:
+tempImagesEdit;
+
+$('img-preview-'+mode).innerHTML=
+array.map((src,index)=>
+'<div class="img-preview">'+
+'<img src="'+
+esc(src)+
+'" alt="Vista previa">'+
+'<button class="remove-img" type="button" onclick="removeImage('+
+index+
+',\''+
+mode+
+'\')">'+
+'<i class="fas fa-times"></i>'+
+'</button>'+
+'</div>'
+).join('');
+
+}
+
+window.removeImage=function(index,mode){
+
+const array=
+mode==='add'?
+tempImagesAdd:
+tempImagesEdit;
+
+array.splice(index,1);
+
+renderImages(mode);
+
+};
+
+function handleFiles(input,mode){
+
+const array=
+mode==='add'?
+tempImagesAdd:
+tempImagesEdit;
+
+const available=3-array.length;
+
+if(available<=0){
+
+toast(
+'Máximo 3 fotos por punto',
+'error'
+);
+
+input.value='';
+
+return;
+
+}
+
+const files=
+Array.from(input.files)
+.filter(file=>file.type.startsWith('image/'))
+.slice(0,available);
+
+if(!files.length){
+
+input.value='';
+return;
+
+}
+
+let processed=0;
+
+files.forEach(file=>{
+
+resizeImage(file,base64=>{
+
+array.push(base64);
+
+processed++;
+
+renderImages(mode);
+
+if(processed===files.length){
+
+toast(
+'Fotos listas ('+
+array.length+
+'/3)'
+);
+
+}
+
+});
+
+});
+
+if(input.files.length>files.length){
+
+toast(
+'Solo se pueden guardar hasta 3 fotos por punto',
+'error'
+);
+
+}
+
+input.value='';
+
+}
+
+$('inp-img').addEventListener(
+'change',
+e=>handleFiles(e.target,'add')
+);
+
+$('edit-img').addEventListener(
+'change',
+e=>handleFiles(e.target,'edit')
+);
+
+function openAdd(lat,lng){
+
+if(!currentUser){
+
+$('modal-welcome').classList.add('show');
+
+return;
+
+}
+
+$('inp-name').value='';
+$('inp-desc').value='';
+$('inp-video').value='';
+$('inp-web').value='';
+
+$('inp-coords').value=
+lat.toFixed(6)+
+', '+
+lng.toFixed(6);
+
+$('modal-point').dataset.lat=lat;
+$('modal-point').dataset.lng=lng;
+
+$('add-author-display').textContent=
+currentUser;
+
+tempImagesAdd=[];
+
+renderImages('add');
+
+$('modal-point').classList.add('show');
+
+$('inp-name').focus();
+
+}
+
+$('btn-save-point').onclick=function(){
+
+const name=$('inp-name').value.trim();
+
+if(!name){
+
+$('inp-name').focus();
+
+return;
+
+}
+
+const web=
+$('inp-web').value.trim();
+
+const video=
+$('inp-video').value.trim();
+
+const point={
+
+name:name,
+
+cat:$('inp-cat').value,
+
+lat:Number(
+$('modal-point').dataset.lat
+),
+
+lng:Number(
+$('modal-point').dataset.lng
+),
+
+desc:$('inp-desc').value.trim(),
+
+author:currentUser||'Anónimo',
+
+createdAt:
+firebase.database.ServerValue.TIMESTAMP
+
+};
+
+if(tempImagesAdd.length){
+
+point.images=tempImagesAdd;
+
+}
+
+if(video){
+
+point.video=video;
+
+}
+
+if(web){
+
+point.web=web;
+
+}
+
+syncing(true);
+
+pointsRef.push(point)
+.then(()=>{
+
+closeModal('modal-point');
+
+setAddMode(false);
+
+toast(
+'Punto agregado correctamente'
+);
+
+})
+.catch(error=>{
+
+syncing(false);
+
+toast(
+'Error al guardar: '+
+error.message,
+'error'
+);
+
+});
+
+};
+
+function closeModal(id){
+
+$(id).classList.remove('show');
+
+if(id==='modal-point'){
+
+tempImagesAdd=[];
+
+}
+
+if(id==='modal-edit'){
+
+tempImagesEdit=[];
+currentEditId=null;
+
+}
+
+}
+
+$('btn-cancel-point').onclick=()=>{
+closeModal('modal-point');
+};
+
+$('modal-point').onclick=e=>{
+
+if(e.target===$('modal-point')){
+
+closeModal('modal-point');
+
+}
+
+};
+
+window.editPoint=function(key){
+
+const point=points.find(
+p=>p.firebaseKey===key
+);
+
+if(!point)return;
+
+currentEditId=key;
+
+$('edit-name').value=
+point.name||'';
+
+$('edit-desc').value=
+point.desc||'';
+
+$('edit-author').value=
+point.author||'';
+
+$('edit-video').value=
+point.video||'';
+
+$('edit-web').value=
+point.web||'';
+
+renderSelects();
+
+$('edit-cat').value=
+point.cat||'';
+
+tempImagesEdit=
+Array.isArray(point.images)?
+[...point.images]:
+[];
+
+renderImages('edit');
+
+$('modal-edit').classList.add('show');
+
+};
+
+$('btn-save-edit').onclick=function(){
+
+if(!currentEditId)return;
+
+const name=
+$('edit-name').value.trim();
+
+if(!name){
+
+$('edit-name').focus();
+
+return;
+
+}
+
+const updates={
+
+name:name,
+
+cat:$('edit-cat').value,
+
+desc:$('edit-desc').value.trim(),
+
+author:
+$('edit-author').value.trim()||null,
+
+images:
+tempImagesEdit.length?
+tempImagesEdit:
+null,
+
+video:
+$('edit-video').value.trim()||null,
+
+web:
+$('edit-web').value.trim()||null,
+
+updatedAt:
+firebase.database.ServerValue.TIMESTAMP,
+
+updatedBy:
+currentUser||null
+
+};
+
+syncing(true);
+
+pointsRef
+.child(currentEditId)
+.update(updates)
+
+.then(()=>{
+
+closeModal('modal-edit');
+
+toast(
+'Punto actualizado'
+);
+
+})
+
+.catch(error=>{
+
+syncing(false);
+
+toast(
+'Error al actualizar: '+
+error.message,
+'error'
+);
+
+});
+
+};
+
+$('btn-cancel-edit').onclick=()=>{
+closeModal('modal-edit');
+};
+
+$('modal-edit').onclick=e=>{
+
+if(e.target===$('modal-edit')){
+
+closeModal('modal-edit');
+
+}
+
+};
+
+window.deletePoint=function(key){
+
+if(!confirm(
+'¿Eliminar este punto?'
+))return;
+
+syncing(true);
+
+pointsRef
+.child(key)
+.remove()
+
+.then(()=>{
+
+if(currentEditId===key){
+
+closeModal('modal-edit');
+
+}
+
+toast(
+'Punto eliminado'
+);
+
+})
+
+.catch(error=>{
+
+syncing(false);
+
+toast(
+'Error al eliminar: '+
+error.message,
+'error'
+);
+
+});
+
+};
+
+$('btn-delete-edit').onclick=()=>{
+
+if(currentEditId){
+
+window.deletePoint(
+currentEditId
+);
+
+}
+
+};
+
+$('btn-add-cat').onclick=function(){
+
+$('cat-name').value='';
+$('cat-color').value='#5b6fa8';
+$('cat-icon').value='fa-star';
+
+$('modal-cat').classList.add('show');
+
+$('cat-name').focus();
+
+};
+
+$('btn-cancel-cat').onclick=()=>{
+closeModal('modal-cat');
+};
+
+$('modal-cat').onclick=e=>{
+
+if(e.target===$('modal-cat')){
+
+closeModal('modal-cat');
+
+}
+
+};
+
+$('btn-save-cat').onclick=function(){
+
+const name=
+$('cat-name').value.trim();
+
+if(!name){
+
+$('cat-name').focus();
+
+return;
+
+}
+
+let key=
+name
+.toLowerCase()
+.normalize('NFD')
+.replace(/[\u0300-\u036f]/g,'')
+.replace(/[^a-z0-9]+/g,'_')
+.replace(/^_|_$/g,'');
+
+if(!key){
+
+key='rubro';
+
+}
+
+const category={
+
+label:name,
+
+color:$('cat-color').value,
+
+icon:
+$('cat-icon').value.trim()||
+'fa-star'
+
+};
+
+syncing(true);
+
+catsRef
+.child(key)
+.set(category)
+
+.then(()=>{
+
+activeCats.add(key);
+
+closeModal('modal-cat');
+
+toast(
+'Rubro "'+
+name+
+'" creado'
+);
+
+})
+
+.catch(error=>{
+
+syncing(false);
+
+toast(
+'Error al crear rubro: '+
+error.message,
+'error'
+);
+
+});
+
+};
+
+function setAddMode(value){
+
+addMode=value;
+
+const button=$('btn-add-mode');
+
+button.classList.toggle(
+'btn-accent',
+value
+);
+
+button.innerHTML=value?
+'<i class="fas fa-times"></i> Cancelar':
+'<i class="fas fa-plus"></i> Agregar punto';
+
+$('add-mode-badge').style.display=
+value?
+'inline-block':
+'none';
+
+document.body.style.cursor=
+value?
+'crosshair':
+'';
+
+}
+
+$('btn-add-mode').onclick=function(){
+
+if(!currentUser){
+
+$('modal-welcome').classList.add('show');
+
+return;
+
+}
+
+setAddMode(!addMode);
+
+};
+
+$('btn-export').onclick=function(){
+
+const cleanPoints=
+points.map(
+({firebaseKey,...point})=>point
+);
+
+const blob=new Blob(
+[
+JSON.stringify(
+{
+categories:categories,
+points:cleanPoints
+},
+null,
+2
+)
+],
+{
+type:'application/json;charset=utf-8'
+}
+);
+
+const url=
+URL.createObjectURL(blob);
+
+const link=
+document.createElement('a');
+
+link.href=url;
+
+link.download=
+'mapa-san-francisco-backup-'+
+new Date()
+.toISOString()
+.slice(0,10)+
+'.json';
+
+document.body.appendChild(link);
+
+link.click();
+
+link.remove();
+
+setTimeout(
+()=>URL.revokeObjectURL(url),
+500
+);
+
+toast(
+'Datos exportados'
+);
+
+};
+
+initMap();
+initWelcome();
+initPresence();
+initData();
+
 })();
 </script>
+
 </body>
 </html>
