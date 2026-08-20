@@ -436,6 +436,99 @@
   </div>
 </div>
 
+<!-- ===== EDIT POINT MODAL ===== -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3>Editar punto de interés</h3>
+      <p>Modificá los datos del lugar y guardá los cambios.</p>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-row">
+        <label>Nombre del lugar</label>
+        <input type="text" id="edit-name" placeholder="Nombre del lugar">
+      </div>
+
+      <div class="form-row">
+        <label>Rubro</label>
+        <select id="edit-cat"></select>
+      </div>
+
+      <div class="form-row">
+        <label>Descripción / Datos del lugar</label>
+        <textarea id="edit-desc" placeholder="Historia, horarios, datos de contacto, características..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label>Autor</label>
+        <input type="text" id="edit-author" placeholder="Nombre y apellido">
+        <small>Podés dejar el autor original o modificarlo.</small>
+      </div>
+
+      <!-- Fotos -->
+      <div class="form-row">
+        <label>Fotos (máx. 3)</label>
+
+        <div class="img-upload-zone" onclick="document.getElementById('edit-img').click()">
+          <i class="fas fa-camera"></i>
+          <span>Hacé clic para agregar fotos</span>
+        </div>
+
+        <input
+          type="file"
+          id="edit-img"
+          accept="image/*"
+          multiple
+          onchange="window.handleImageUpload(this,'edit')"
+        >
+
+        <div class="img-preview-grid" id="img-preview-edit"></div>
+
+        <small>
+          Podés tener hasta 3 fotos por punto.
+        </small>
+      </div>
+
+      <!-- Video -->
+      <div class="form-row">
+        <label>Video de YouTube (opcional)</label>
+
+        <div class="video-row">
+          <input
+            type="text"
+            id="edit-video"
+            placeholder="Pegá acá el link de YouTube"
+          >
+        </div>
+
+        <small>
+          Ejemplo: https://www.youtube.com/watch?v=ABC123
+        </small>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" id="btn-cancel-edit">
+        Cancelar
+      </button>
+
+      <button class="btn btn-accent" id="btn-delete-edit">
+        <i class="fas fa-trash" style="margin-right:5px;"></i>
+        Eliminar
+      </button>
+
+      <button class="btn btn-primary" id="btn-save-edit">
+        <i class="fas fa-save" style="margin-right:5px;"></i>
+        Guardar cambios
+      </button>
+    </div>
+
+  </div>
+</div>
+  
 <!-- ADD CATEGORY MODAL -->
 <div class="modal-overlay" id="modal-cat">
   <div class="modal">
