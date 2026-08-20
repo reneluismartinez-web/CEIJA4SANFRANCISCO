@@ -1007,6 +1007,7 @@
     const name = document.getElementById('inp-name').value.trim();
     if (!name) { document.getElementById('inp-name').focus(); return; }
     const videoUrl = document.getElementById('inp-video').value.trim();
+    const webUrl = document.getElementById('inp-web').value.trim();
     const p = {
       name: name,
       cat: document.getElementById('inp-cat').value,
@@ -1016,6 +1017,7 @@
       author: currentUser || 'Anónimo',
       images: tempImagesAdd.length > 0 ? tempImagesAdd : null,
       video: videoUrl || null,
+      web: webUrl || null,
       createdAt: Date.now()
     };
     // Clean nulls
