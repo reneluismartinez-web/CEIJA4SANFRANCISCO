@@ -51,7 +51,29 @@ function visiblePoints(){const q=slug(searchText);return points.filter(p=>{if(se
 function popup(p){const cat=categories[p.cat]||{};let h=`<div style="min-width:220px"><div class="popup-title">${esc(p.name)}</div><div class="popup-meta"><i class="fa-solid ${esc(cat.icon||'fa-location-dot')}"></i> ${esc(cat.label||p.cat||'Sin categoría')}</div>`;if(p.author)h+=`<div class="popup-meta">Aporte de: ${esc(p.author)}</div>`;if(p.desc)h+=`<div class="popup-desc">${esc(p.desc).replace(/\n/g,'<br>')}</div>`;(p.images||[]).slice(0,3).forEach(x=>h+=`<img class="popup-img" src="${esc(x)}" alt="Foto del lugar">`);const y=youtube(p.video);if(y)h+=`<iframe style="width:100%;height:180px;border:0;border-radius:8px;margin-top:8px" src="https://www.youtube.com/embed/${encodeURIComponent(y)}" allowfullscreen></iframe>`;if(p.web){let w=String(p.web);if(!/^https?:\/\//i.test(w))w='https://'+w;h+=`<div style="margin-top:9px"><a href="${esc(w)}" target="_blank" rel="noopener">Visitar página web</a></div>`}return h+'</div>'}
 function renderMarkers(){Object.values(markers).forEach(m=>map.removeLayer(m));markers={};visiblePoints().forEach(p=>{if(typeof p.lat!=='number'||typeof p.lng!=='number')return;const m=L.marker([p.lat,p.lng],{icon:icon(p.cat)}).addTo(map).bindPopup(popup(p));markers[p.firebaseKey]=m})}
 function focusPoint(id){const p=points.find(x=>x.firebaseKey===id);if(!p)return;if(!markers[id]){selectedCategory='';activeCats=new Set(Object.keys(categories));searchText='';$('search').value='';renderAll()}map.setView([p.lat,p.lng],17);setTimeout(()=>markers[id]?.openPopup(),100)}
-function renderCategories(){const entries=Object.entries(categories);$('categories-list').innerHTML=entries.length?entries.map(([key,c])=>{const count=points.filter(p=>p.cat===key).length;return `<button class="cat-row" data-cat="${esc(key)}"><span class="cat-dot" style="background:${c.color}"></span><i class="fa-solid ${esc(c.icon)}"></i><span>${esc(c.label)}</span><span class="count">${count}</span></button>`}).join(''):'<div class="empty">No hay categorías.</div>';document.querySelectorAll('.cat-row').forEach(b=>b.onclick=()=>{const k=b.dataset.cat;if(activeCats.has(k)&&activeCats.size>1)activeCats.delete(k);else activeCats.add(k);renderAll()});$('category-select').innerHTML='<option value="">Todas las categorías</option>'+entries.map(([k,c])=>`<option value="${esc(k)}">${esc(c.label)}</option>`).join('');$('category-select').value=selectedCategory}
+function renderCategories(){const entries=Object.entries(categories);$('categories-list').innerHTML=entries.length?entries.map(([key,c])=>{const count=points.filter(p=>p.cat===key).length;return `<button class="cat-row" data-cat="${esc(key)}"><span class="cat-dot" style="background:${c.color}"></span><i class="fa-solid ${esc(c.icon)}"></i><span>${esc(c.label)}</span><span class="count">${count}</span></button>`}).join(''):'<div class="empty">No hay categorías.</div>';document.querySelectorAll('.cat-row').forEach(b=>b.onclick=()=>{
+
+    const k=b.dataset.cat;
+
+    /*
+    Seleccionamos una única categoría.
+    El comportamiento será igual al selector
+    superior "Todas las categorías".
+    */
+
+    selectedCategory=k;
+
+    $('category-select').value=k;
+
+    /*
+    Dejamos visible únicamente la categoría seleccionada.
+    */
+
+    activeCats=new Set([k]);
+
+    renderAll();
+
+});$('category-select').innerHTML='<option value="">Todas las categorías</option>'+entries.map(([k,c])=>`<option value="${esc(k)}">${esc(c.label)}</option>`).join('');$('category-select').value=selectedCategory}
 function renderPoints(){const arr=visiblePoints();$('total-count').textContent=points.length;$('points-list').innerHTML=arr.length?arr.map(p=>{const c=categories[p.cat]||{color:'#64748b',icon:'fa-location-dot',label:'Sin categoría'};const actions=canManagePoint(p)?`<div class="point-actions"><button class="icon-btn edit" data-id="${esc(p.firebaseKey)}" title="Editar"><i class="fa-solid fa-pen"></i></button><button class="icon-btn del" data-id="${esc(p.firebaseKey)}" title="Eliminar"><i class="fa-solid fa-trash"></i></button></div>`:'';return `<div class="point-row" data-focus="${esc(p.firebaseKey)}"><div class="point-icon" style="background:${c.color}"><i class="fa-solid ${esc(c.icon)}"></i></div><div class="point-main"><div class="point-name">${esc(p.name)}</div><div class="point-meta">${esc(c.label)}${p.author?' · '+esc(p.author):''}</div></div>${actions}</div>`}).join(''):'<div class="empty"><i class="fa-solid fa-magnifying-glass"></i><br>No encontramos lugares con esos criterios.</div>';document.querySelectorAll('[data-focus]').forEach(e=>e.onclick=ev=>{if(ev.target.closest('.point-actions'))return;focusPoint(e.dataset.focus)});document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>openPoint(b.dataset.id));document.querySelectorAll('.del').forEach(b=>b.onclick=()=>deletePoint(b.dataset.id))}
 function renderAll(){renderCategories();renderMarkers();renderPoints()}
 function fillCategorySelect(){const h=Object.entries(categories).map(([k,c])=>`<option value="${esc(k)}">${esc(c.label)}</option>`).join('');$('p-cat').innerHTML=h}
