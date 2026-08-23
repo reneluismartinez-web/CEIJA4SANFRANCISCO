@@ -41,56 +41,34 @@ let map,markers={},points=[],categories={},activeCats=new Set(),searchText='',se
 const $=id=>document.getElementById(id),catsRef=db.ref('categories'),pointsRef=db.ref('points'),presenceRef=db.ref('presence');
 function esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}function slug(v){return String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function toast(msg,type='ok'){const e=document.createElement('div');e.className='toast '+(type==='error'?'error':'');e.textContent=msg;$('toast-wrap').appendChild(e);setTimeout(()=>e.remove(),3500)}
-function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>hide(b.dataset.close));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide(m.id)}));
+function show(id){$(id).classList.add('show')}function hide(id){if(id==='modal-point')addingPoint=false;$(id).classList.remove('show')}document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>hide(b.dataset.close));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide(m.id)}));
 function isTeacher(){return mode==='teacher'}function canWrite(){return mode==='student'||mode==='teacher'}function canManagePoint(p){return isTeacher()|| (!!auth.currentUser&&p.ownerUid===auth.currentUser.uid)}
 function setMode(next){mode=next;$('add-point').classList.toggle('hidden',!canWrite());$('manage-cats').classList.toggle('hidden',!isTeacher());$('map-status').textContent=mode==='visitor'?'Explorá los lugares cargados. Para aportar, ingresá como estudiante.':mode==='teacher'?'Acceso docente activo: podés administrar todos los contenidos.':'Acceso estudiante activo: podés agregar y administrar tus propios puntos.';renderAll()}
-function initMap(){map=L.map('map').setView([-31.427,-62.083],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);map.on('click',e=>{
+function initMap(){
+  map=L.map('map').setView([-31.427,-62.083],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,
+    attribution:'© OpenStreetMap contributors'
+  }).addTo(map);
 
-    /*
-    El mapa funciona normalmente para todos.
-    Solo se abre el formulario si previamente
-    se pulsó el botón "Agregar punto".
-    */
-
-    if(!canWrite() || !addingPoint)return;
-
+  map.on('click',e=>{
+    if(!canWrite()||!addingPoint) return;
     addingPoint=false;
-
-    openPoint(
-        null,
-        e.latlng.lat,
-        e.latlng.lng
-    );
-
-})}
+    openPoint(null,e.latlng.lat,e.latlng.lng);
+  });
+}
 function icon(cat){const c=categories[cat]||{color:'#64748b',icon:'fa-location-dot'};return L.divIcon({className:'',html:`<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c.color};border:2px solid #fff;box-shadow:0 2px 7px #0004;display:grid;place-items:center"><i class="fa-solid ${esc(c.icon)}" style="color:#fff;transform:rotate(45deg);font-size:13px"></i></div>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-34]})}
 function youtube(url){if(!url)return null;const m=String(url).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([^?&/]+)/);return m?m[1]:null}
 function visiblePoints(){const q=slug(searchText);return points.filter(p=>{if(selectedCategory&&p.cat!==selectedCategory)return false;if(!activeCats.has(p.cat))return false;if(!q)return true;const cat=categories[p.cat]?.label||p.cat;return slug([p.name,p.desc,p.author,cat,p.web].filter(Boolean).join(' ')).includes(q)})}
 function popup(p){const cat=categories[p.cat]||{};let h=`<div style="min-width:220px"><div class="popup-title">${esc(p.name)}</div><div class="popup-meta"><i class="fa-solid ${esc(cat.icon||'fa-location-dot')}"></i> ${esc(cat.label||p.cat||'Sin categoría')}</div>`;if(p.author)h+=`<div class="popup-meta">Aporte de: ${esc(p.author)}</div>`;if(p.desc)h+=`<div class="popup-desc">${esc(p.desc).replace(/\n/g,'<br>')}</div>`;(p.images||[]).slice(0,3).forEach(x=>h+=`<img class="popup-img" src="${esc(x)}" alt="Foto del lugar">`);const y=youtube(p.video);if(y)h+=`<iframe style="width:100%;height:180px;border:0;border-radius:8px;margin-top:8px" src="https://www.youtube.com/embed/${encodeURIComponent(y)}" allowfullscreen></iframe>`;if(p.web){let w=String(p.web);if(!/^https?:\/\//i.test(w))w='https://'+w;h+=`<div style="margin-top:9px"><a href="${esc(w)}" target="_blank" rel="noopener">Visitar página web</a></div>`}return h+'</div>'}
 function renderMarkers(){Object.values(markers).forEach(m=>map.removeLayer(m));markers={};visiblePoints().forEach(p=>{if(typeof p.lat!=='number'||typeof p.lng!=='number')return;const m=L.marker([p.lat,p.lng],{icon:icon(p.cat)}).addTo(map).bindPopup(popup(p));markers[p.firebaseKey]=m})}
 function focusPoint(id){const p=points.find(x=>x.firebaseKey===id);if(!p)return;if(!markers[id]){selectedCategory='';activeCats=new Set(Object.keys(categories));searchText='';$('search').value='';renderAll()}map.setView([p.lat,p.lng],17);setTimeout(()=>markers[id]?.openPopup(),100)}
-function renderCategories(){const entries=Object.entries(categories);$('categories-list').innerHTML=entries.length?entries.map(([key,c])=>{const count=points.filter(p=>p.cat===key).length;return `<button class="cat-row" data-cat="${esc(key)}"><span class="cat-dot" style="background:${c.color}"></span><i class="fa-solid ${esc(c.icon)}"></i><span>${esc(c.label)}</span><span class="count">${count}</span></button>`}).join(''):'<div class="empty">No hay categorías.</div>';document.querySelectorAll('.cat-row').forEach(b=>b.onclick=()=>{
-
-    const k=b.dataset.cat;
-
-    /*
-    Seleccionamos una única categoría.
-    El comportamiento será igual al selector
-    superior "Todas las categorías".
-    */
-
-    selectedCategory=k;
-
-    $('category-select').value=k;
-
-    /*
-    Dejamos visible únicamente la categoría seleccionada.
-    */
-
-    activeCats=new Set([k]);
-
-    renderAll();
-
+function renderCategories(){const entries=Object.entries(categories);$('categories-list').innerHTML=entries.length?entries.map(([key,c])=>{const count=points.filter(p=>p.cat===key).length;return `<button class="cat-row${selectedCategory===key?' active':''}" data-cat="${esc(key)}"><span class="cat-dot" style="background:${c.color}"></span><i class="fa-solid ${esc(c.icon)}"></i><span>${esc(c.label)}</span><span class="count">${count}</span></button>`}).join(''):'<div class="empty">No hay categorías.</div>';document.querySelectorAll('.cat-row').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.cat;
+  selectedCategory=k;
+  activeCats=new Set([k]);
+  $('category-select').value=k;
+  renderAll();
 });$('category-select').innerHTML='<option value="">Todas las categorías</option>'+entries.map(([k,c])=>`<option value="${esc(k)}">${esc(c.label)}</option>`).join('');$('category-select').value=selectedCategory}
 function renderPoints(){const arr=visiblePoints();$('total-count').textContent=points.length;$('points-list').innerHTML=arr.length?arr.map(p=>{const c=categories[p.cat]||{color:'#64748b',icon:'fa-location-dot',label:'Sin categoría'};const actions=canManagePoint(p)?`<div class="point-actions"><button class="icon-btn edit" data-id="${esc(p.firebaseKey)}" title="Editar"><i class="fa-solid fa-pen"></i></button><button class="icon-btn del" data-id="${esc(p.firebaseKey)}" title="Eliminar"><i class="fa-solid fa-trash"></i></button></div>`:'';return `<div class="point-row" data-focus="${esc(p.firebaseKey)}"><div class="point-icon" style="background:${c.color}"><i class="fa-solid ${esc(c.icon)}"></i></div><div class="point-main"><div class="point-name">${esc(p.name)}</div><div class="point-meta">${esc(c.label)}${p.author?' · '+esc(p.author):''}</div></div>${actions}</div>`}).join(''):'<div class="empty"><i class="fa-solid fa-magnifying-glass"></i><br>No encontramos lugares con esos criterios.</div>';document.querySelectorAll('[data-focus]').forEach(e=>e.onclick=ev=>{if(ev.target.closest('.point-actions'))return;focusPoint(e.dataset.focus)});document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>openPoint(b.dataset.id));document.querySelectorAll('.del').forEach(b=>b.onclick=()=>deletePoint(b.dataset.id))}
 function renderAll(){renderCategories();renderMarkers();renderPoints()}
@@ -99,141 +77,164 @@ function openPoint(id,lat,lng){if(!canWrite()){openStudent();return}currentEditI
 function renderImages(){$('image-preview').innerHTML=tempImages.map((x,i)=>`<div class="media-item"><img src="${esc(x)}" alt="Vista previa"><button type="button" data-rm="${i}">×</button></div>`).join('');document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{tempImages.splice(+b.dataset.rm,1);renderImages()})}
 function resizeImage(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>{const im=new Image();im.onload=()=>{let w=im.width,h=im.height;if(w>1000){h=h*1000/w;w=1000}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);resolve(c.toDataURL('image/jpeg',.72))};im.onerror=reject;im.src=e.target.result};r.onerror=reject;r.readAsDataURL(file)})}
 $('upload-zone').onclick=()=>$('p-images').click();$('p-images').onchange=async e=>{const files=[...e.target.files];for(const f of files){if(tempImages.length>=3)break;try{tempImages.push(await resizeImage(f))}catch{toast('No se pudo procesar una imagen.','error')}}renderImages();e.target.value=''};
-$('save-point').onclick=async()=>{const name=$('p-name').value.trim(),cat=$('p-cat').value;if(!name||!cat){toast('Completá el nombre y la categoría.','error');return}if(!auth.currentUser){toast('Tu sesión todavía no está lista. Intentá nuevamente.','error');return}const old=currentEditId?points.find(x=>x.firebaseKey===currentEditId):null;const data={name,cat,desc:$('p-desc').value.trim(),images:tempImages,video:$('p-video').value.trim(),web:$('p-web').value.trim(),lat:Number(currentLatLng[0]),lng:Number(currentLatLng[1]),author:old?.author||currentUserName,ownerUid:old?.ownerUid||auth.currentUser.uid,createdAt:old?.createdAt||firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};try{if(currentEditId)await pointsRef.child(currentEditId).update(data);else await pointsRef.push(data);hide('modal-point');toast(currentEditId?'Cambios guardados.':'Punto agregado correctamente.')}catch(e){console.error(e);toast('Firebase rechazó la operación. Revisá las reglas de seguridad.','error')}};
-async function deletePoint(id){const p=points.find(x=>x.firebaseKey===id);if(!p||!canManagePoint(p))return;if(!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`))return;try{await pointsRef.child(id).remove();hide('modal-point');toast('Punto eliminado.')}catch(e){toast('No se pudo eliminar el punto.','error')}}$('delete-point').onclick=()=>currentEditId&&deletePoint(currentEditId);
-function openVisitor(){auth.signOut().finally(()=>{currentUserName='';setMode('visitor');hide('modal-access');toast('Modo visitante activado: solo visualización.')})}
-function openStudent(){if(auth.currentUser&&auth.currentUser.isAnonymous){setMode('student');return}$('access-title').textContent='Ingresar como estudiante';$('access-text').textContent='Tu nombre identificará tus aportes. Solo podrás editar o eliminar los puntos que crees.';$('access-body').innerHTML=`<div class="field"><label>Nombre y apellido</label><input id="student-name" placeholder="Ej.: María González"></div><button id="student-login" class="primary">INGRESAR AL MAPA</button>`;$('student-login').onclick=async()=>{const name=$('student-name').value.trim();if(!name){$('student-name').focus();return}try{if(auth.currentUser&&!auth.currentUser.isAnonymous)await auth.signOut();await auth.signInAnonymously();currentUserName=name;localStorage.setItem('ceija_map_student_name',name);await presenceRef.child(auth.currentUser.uid).set({name,role:'student',joinedAt:firebase.database.ServerValue.TIMESTAMP});presenceRef.child(auth.currentUser.uid).onDisconnect().remove();hide('modal-access');setMode('student');toast('¡Bienvenido, '+name+'!')}catch(e){console.error(e);toast('No se pudo iniciar la sesión de estudiante.','error')}};show('modal-access')}
-function openTeacher(){
-$('access-title').textContent='Acceso docente';
-$('access-text').textContent='Ingresá tu correo electrónico y la clave de acceso docente.';
+$('save-point').onclick=async()=>{
+  const name=$('p-name').value.trim();
+  const cat=$('p-cat').value;
+  if(!name||!cat){ toast('Completá el nombre y la categoría.','error'); return; }
+  if(!auth.currentUser){ toast('Tu sesión todavía no está lista. Intentá nuevamente.','error'); return; }
 
-$('access-body').innerHTML=`
-<div class="field">
-<label>Correo electrónico</label>
-<input id="teacher-email" type="email" placeholder="docente@ejemplo.com" autocomplete="email">
-</div>
+  const old=currentEditId?points.find(x=>x.firebaseKey===currentEditId):null;
+  if(old&&!canManagePoint(old)){
+    toast('No tenés permiso para modificar este punto.','error');
+    return;
+  }
 
-<div class="field">
-<label>Clave de acceso</label>
-<input id="teacher-password" type="password" placeholder="Ingresá la clave" autocomplete="current-password">
-</div>
+  const data={
+    name,
+    cat,
+    desc:$('p-desc').value.trim(),
+    images:tempImages,
+    video:$('p-video').value.trim(),
+    web:$('p-web').value.trim(),
+    lat:Number(currentLatLng[0]),
+    lng:Number(currentLatLng[1]),
+    author:old?.author||(mode==='teacher'?'Docente':currentUserName),
+    ownerUid:old?.ownerUid||auth.currentUser.uid,
+    createdAt:old?.createdAt||firebase.database.ServerValue.TIMESTAMP,
+    updatedAt:firebase.database.ServerValue.TIMESTAMP
+  };
 
-<button id="teacher-login" class="primary" style="background:var(--purple)">
-INGRESAR COMO DOCENTE
-</button>`;
-
-$('teacher-login').onclick=async()=>{
-try{
-const email=$('teacher-email').value.trim();
-const pass=$('teacher-password').value;
-
-if(!email){
-throw new Error('Ingresá un correo electrónico.');
-}
-
-const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-if(!emailPattern.test(email)){
-throw new Error('Ingresá un correo electrónico válido.');
-}
-
-if(!pass){
-throw new Error('Ingresá la clave docente.');
-}
-
-if(pass!==TEACHER_PASSWORD){
-throw new Error('Clave docente incorrecta.');
-}
-
-/*
-El correo se utiliza únicamente como identificación visual.
-No se guarda en Firebase ni se crea una cuenta.
-*/
-
-if(auth.currentUser){
-await auth.signOut();
-}
-
-currentUserName=email;
-
-hide('modal-access');
-
-setMode('teacher');
-
-toast('Acceso docente activado.');
-
-}catch(e){
-
-console.error(e);
-
-toast(
-e.message||'No se pudo activar el acceso docente.',
-'error'
-);
-
-}
+  try{
+    if(currentEditId) await pointsRef.child(currentEditId).update(data);
+    else await pointsRef.push(data);
+    addingPoint=false;
+    hide('modal-point');
+    renderAll();
+    toast(currentEditId?'Cambios guardados.':'Punto agregado correctamente.');
+  }catch(e){
+    console.error(e);
+    toast('Firebase rechazó la operación. Revisá las reglas de seguridad.','error');
+  }
 };
 
-show('modal-access');
+async function deletePoint(id){const p=points.find(x=>x.firebaseKey===id);if(!p||!canManagePoint(p))return;if(!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`))return;try{await pointsRef.child(id).remove();hide('modal-point');toast('Punto eliminado.')}catch(e){toast('No se pudo eliminar el punto.','error')}}$('delete-point').onclick=()=>currentEditId&&deletePoint(currentEditId);
+function openVisitor(){
+  addingPoint=false;
+  currentUserName='';
+  const finish=()=>{
+    setMode('visitor');
+    hide('modal-access');
+    toast('Modo visitante activado: solo visualización.');
+  };
+  if(auth.currentUser) auth.signOut().finally(finish); else finish();
 }
-            $('btn-visitor').onclick=openVisitor;$('btn-student').onclick=openStudent;$('btn-teacher').onclick=openTeacher;$('add-point').onclick=()=>{if(!canWrite())openStudent();else toast('Hacé clic en el lugar del mapa donde querés agregar el punto.')};document.querySelectorAll('.action-add').forEach(b=>b.onclick=()=>{if(!canWrite())openStudent();else toast('Hacé clic en el mapa para elegir la ubicación.')});$('my-points').onclick=()=>{if(!auth.currentUser||mode==='visitor'){openStudent();return}const mine=points.filter(p=>p.ownerUid===auth.currentUser.uid);if(!mine.length){toast('Todavía no agregaste puntos.');return}const b=L.latLngBounds(mine.map(p=>[p.lat,p.lng]));map.fitBounds(b.pad(.25));searchText='';$('search').value='';selectedCategory='';renderAll()};$('instructions').onclick=()=>show('modal-help');$('search').oninput=e=>{searchText=e.target.value;renderAll()};$('clear-search').onclick=()=>{searchText='';selectedCategory='';$('search').value='';$('category-select').value='';activeCats=new Set(Object.keys(categories));renderAll()};$('category-select').onchange=e=>{selectedCategory=e.target.value;renderAll()};
+
+function openStudent(){
+  $('access-title').textContent='Ingresar como estudiante';
+  $('access-text').textContent='Tu nombre aparecerá en tus aportes. Podrás editar o eliminar únicamente los puntos creados durante tu sesión.';
+  $('access-body').innerHTML=`
+    <div class="field">
+      <label>Nombre y apellido</label>
+      <input id="student-name" placeholder="Ej.: María González" autocomplete="off" autocapitalize="words">
+    </div>
+    <button id="student-login" class="primary">INGRESAR AL MAPA</button>`;
+
+  $('student-login').onclick=async()=>{
+    const name=$('student-name').value.trim();
+    if(!name){ $('student-name').focus(); return; }
+    try{
+      addingPoint=false;
+      // Cada nuevo ingreso como estudiante inicia una identidad técnica nueva.
+      if(auth.currentUser) await auth.signOut();
+      await auth.signInAnonymously();
+      currentUserName=name;
+      await presenceRef.child(auth.currentUser.uid).set({
+        name,
+        role:'student',
+        joinedAt:firebase.database.ServerValue.TIMESTAMP
+      });
+      presenceRef.child(auth.currentUser.uid).onDisconnect().remove();
+      hide('modal-access');
+      setMode('student');
+      toast('¡Bienvenido, '+name+'! Explorá el mapa y usá "Agregar punto" cuando quieras realizar un aporte.');
+    }catch(e){
+      console.error(e);
+      toast('No se pudo iniciar la sesión de estudiante.','error');
+    }
+  };
+  show('modal-access');
+}
+
+function openTeacher(){
+  $('access-title').textContent='Acceso docente';
+  $('access-text').textContent='Ingresá tu correo electrónico y la clave de acceso docente.';
+  $('access-body').innerHTML=`
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input id="teacher-email" type="email" placeholder="docente@ejemplo.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Clave de acceso</label>
+      <input id="teacher-password" type="password" placeholder="Ingresá la clave" autocomplete="current-password">
+    </div>
+    <button id="teacher-login" class="primary" style="background:var(--purple)">INGRESAR COMO DOCENTE</button>`;
+
+  $('teacher-login').onclick=async()=>{
+    try{
+      const email=$('teacher-email').value.trim();
+      const pass=$('teacher-password').value;
+      const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if(!email) throw new Error('Ingresá un correo electrónico.');
+      if(!emailPattern.test(email)) throw new Error('Ingresá un correo electrónico válido.');
+      if(!pass) throw new Error('Ingresá la clave docente.');
+      if(pass!==TEACHER_PASSWORD) throw new Error('Clave docente incorrecta.');
+
+      // Firebase necesita una sesión técnica para permitir las escrituras.
+      if(auth.currentUser) await auth.signOut();
+      await auth.signInAnonymously();
+      currentUserName=email;
+      addingPoint=false;
+      hide('modal-access');
+      setMode('teacher');
+      toast('Acceso docente activado.');
+    }catch(e){
+      console.error(e);
+      toast(e.message||'No se pudo activar el acceso docente.','error');
+    }
+  };
+  show('modal-access');
+}
+
+$('btn-visitor').onclick=openVisitor;
+$('btn-student').onclick=openStudent;
+$('btn-teacher').onclick=openTeacher;
+
+function beginAddPoint(){
+  if(!canWrite()){
+    openStudent();
+    return;
+  }
+  addingPoint=true;
+  toast('Ahora hacé clic en el mapa para elegir la ubicación del nuevo punto.');
+}
+
+$('add-point').onclick=beginAddPoint;
+document.querySelectorAll('.action-add').forEach(b=>b.onclick=beginAddPoint);
+
+$('my-points').onclick=()=>{if(!auth.currentUser||mode==='visitor'){openStudent();return}const mine=points.filter(p=>p.ownerUid===auth.currentUser.uid);if(!mine.length){toast('Todavía no agregaste puntos.');return}const b=L.latLngBounds(mine.map(p=>[p.lat,p.lng]));map.fitBounds(b.pad(.25));searchText='';$('search').value='';selectedCategory='';renderAll()};$('instructions').onclick=()=>show('modal-help');$('search').oninput=e=>{searchText=e.target.value;renderAll()};$('clear-search').onclick=()=>{searchText='';selectedCategory='';$('search').value='';$('category-select').value='';activeCats=new Set(Object.keys(categories));renderAll()};$('category-select').onchange=e=>{selectedCategory=e.target.value;renderAll()};
 $('manage-cats').onclick=()=>{if(!isTeacher()){toast('Solo el docente puede administrar categorías.','error');return}show('modal-category')};$('save-category').onclick=async()=>{if(!isTeacher())return;const label=$('c-label').value.trim();if(!label)return;const key=slug(label).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');try{await catsRef.child(key).set({label,color:$('c-color').value,icon:$('c-icon').value.trim()||'fa-star'});$('c-label').value='';hide('modal-category');toast('Categoría guardada.')}catch(e){toast('No se pudo guardar la categoría.','error')}};
 function initData(){catsRef.on('value',snap=>{categories=snap.val()||{};if(!Object.keys(categories).length&&isTeacher())catsRef.set(DEFAULTS);activeCats=new Set([...activeCats].filter(k=>categories[k]));if(!activeCats.size)activeCats=new Set(Object.keys(categories));renderAll()});pointsRef.on('value',snap=>{const d=snap.val()||{};points=Object.entries(d).map(([firebaseKey,v])=>({...v,firebaseKey}));renderAll()})}
 async function boot(){
-
-initMap();
-
-auth.onAuthStateChanged(async user=>{
-
-authReady=true;
-
-/*
-Si el modo docente fue activado manualmente,
-Firebase no debe cambiar ese modo.
-*/
-
-if(mode==='teacher'){
-return;
+  initMap();
+  auth.onAuthStateChanged(user=>{
+    authReady=true;
+    // Durante una sesión activa no dejamos que Firebase cambie el modo elegido.
+    if(mode==='teacher'||(mode==='student'&&currentUserName)) return;
+    if(!user) setMode('visitor');
+  });
+  initData();
 }
-
-/*
-Sesión de estudiante.
-*/
-
-if(user?.isAnonymous){
-
-currentUserName=
-localStorage.getItem('ceija_map_student_name')||'';
-
-if(currentUserName){
-
-setMode('student');
-
-}else{
-
-setMode('visitor');
-
-}
-
-return;
-}
-
-/*
-Sin sesión activa.
-*/
-
-if(!user){
-
-setMode('visitor');
-
-}
-
-});
-
-initData();
-
-}
-            boot();
+boot();
 })();
 </script>
 </body></html>
