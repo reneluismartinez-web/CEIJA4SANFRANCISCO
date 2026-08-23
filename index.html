@@ -37,14 +37,32 @@ const ASSETS={logo:'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JC
 // IMPORTANTE: después de crear tu cuenta docente, pegá aquí su UID. Hasta hacerlo, el acceso docente podrá iniciar sesión pero no obtendrá permisos especiales.
 const TEACHER_PASSWORD='CEIJA2026.';
 const DEFAULTS={educacion:{label:'Educación',color:'#1f5fae',icon:'fa-graduation-cap'},salud:{label:'Salud',color:'#dc3f3f',icon:'fa-kit-medical'},instituciones:{label:'Instituciones públicas',color:'#1f5fae',icon:'fa-building-columns'},espacios:{label:'Espacios públicos / Plazas',color:'#208a43',icon:'fa-tree'},cultura:{label:'Cultura',color:'#8b3fb7',icon:'fa-masks-theater'},deportes:{label:'Deportes',color:'#0f8c9d',icon:'fa-futbol'},comercios:{label:'Comercios y servicios',color:'#e67b15',icon:'fa-cart-shopping'},turismo:{label:'Turismo',color:'#b77a12',icon:'fa-camera'},religion:{label:'Religión',color:'#e0a000',icon:'fa-church'}};
-let map,markers={},points=[],categories={},activeCats=new Set(),searchText='',selectedCategory='',mode='visitor',currentUserName='',currentEditId=null,currentLatLng=null,tempImages=[],authReady=false;
+let map,markers={},points=[],categories={},activeCats=new Set(),searchText='',selectedCategory='',mode='visitor',currentUserName='',currentEditId=null,currentLatLng=null,tempImages=[],authReady=false,addingPoint=false;
 const $=id=>document.getElementById(id),catsRef=db.ref('categories'),pointsRef=db.ref('points'),presenceRef=db.ref('presence');
 function esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}function slug(v){return String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function toast(msg,type='ok'){const e=document.createElement('div');e.className='toast '+(type==='error'?'error':'');e.textContent=msg;$('toast-wrap').appendChild(e);setTimeout(()=>e.remove(),3500)}
 function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>hide(b.dataset.close));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide(m.id)}));
 function isTeacher(){return mode==='teacher'}function canWrite(){return mode==='student'||mode==='teacher'}function canManagePoint(p){return isTeacher()|| (!!auth.currentUser&&p.ownerUid===auth.currentUser.uid)}
 function setMode(next){mode=next;$('add-point').classList.toggle('hidden',!canWrite());$('manage-cats').classList.toggle('hidden',!isTeacher());$('map-status').textContent=mode==='visitor'?'Explorá los lugares cargados. Para aportar, ingresá como estudiante.':mode==='teacher'?'Acceso docente activo: podés administrar todos los contenidos.':'Acceso estudiante activo: podés agregar y administrar tus propios puntos.';renderAll()}
-function initMap(){map=L.map('map').setView([-31.427,-62.083],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);map.on('click',e=>{if(!canWrite())return;openPoint(null,e.latlng.lat,e.latlng.lng)})}
+function initMap(){map=L.map('map').setView([-31.427,-62.083],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);map.on('click',e=>{
+
+    /*
+    El mapa funciona normalmente para todos.
+    Solo se abre el formulario si previamente
+    se pulsó el botón "Agregar punto".
+    */
+
+    if(!canWrite() || !addingPoint)return;
+
+    addingPoint=false;
+
+    openPoint(
+        null,
+        e.latlng.lat,
+        e.latlng.lng
+    );
+
+})}
 function icon(cat){const c=categories[cat]||{color:'#64748b',icon:'fa-location-dot'};return L.divIcon({className:'',html:`<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c.color};border:2px solid #fff;box-shadow:0 2px 7px #0004;display:grid;place-items:center"><i class="fa-solid ${esc(c.icon)}" style="color:#fff;transform:rotate(45deg);font-size:13px"></i></div>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-34]})}
 function youtube(url){if(!url)return null;const m=String(url).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([^?&/]+)/);return m?m[1]:null}
 function visiblePoints(){const q=slug(searchText);return points.filter(p=>{if(selectedCategory&&p.cat!==selectedCategory)return false;if(!activeCats.has(p.cat))return false;if(!q)return true;const cat=categories[p.cat]?.label||p.cat;return slug([p.name,p.desc,p.author,cat,p.web].filter(Boolean).join(' ')).includes(q)})}
